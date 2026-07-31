@@ -5,6 +5,8 @@ framework_spike.py code patterns, and forbidden paths.
 
 Run via: poetry run python spikes/verify_scaffold.py
 """
+# CHANGELOG:
+# - Sprint 1: Created scaffold verification script — validates all Sprint 1 Task 1 acceptance criteria
 
 import ast
 import os

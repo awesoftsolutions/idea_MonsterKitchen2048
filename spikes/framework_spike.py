@@ -1,4 +1,6 @@
 """Framework spike: 700x800 window, blue placeholder rect, Escape/close handling, screenshot capture."""
+# CHANGELOG:
+# - Sprint 1: Created framework spike — pygame 700x800 window with blue placeholder rect, event handling, and screenshot capture
 import os
 import sys
 import pygame
