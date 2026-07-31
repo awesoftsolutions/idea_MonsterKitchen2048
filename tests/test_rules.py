@@ -235,3 +235,23 @@ def test_slide_merge_empty_inner_rows_raises_value_error() -> None:
     """Grid with empty inner rows raises ValueError."""
     with pytest.raises(ValueError, match="empty"):
         slide_merge([[], [], [], []], Direction.LEFT)
+
+
+# ---------------------------------------------------------------------------
+# Group 12: Edge Cases (HIGH-001)
+# ---------------------------------------------------------------------------
+
+
+def test_all_zeros_stays_zeros() -> None:
+    """An all-zero grid remains identical after slide; score is 0."""
+    grid: list[list[int]] = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+
+    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+
+    assert new_grid == grid
+    assert score_delta == 0

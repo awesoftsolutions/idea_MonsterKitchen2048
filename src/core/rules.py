@@ -17,8 +17,21 @@ Used-by: board.py (Phase 2 production integration), test_rules.py
     (pytest validation suite).
 
 Public API:
-    Direction — enumeration of the four slide directions
-    slide_merge — performs a complete slide-and-merge operation
+    Direction (enum.Enum):
+        Enumeration of the four slide directions.
+        Members: UP, DOWN, LEFT, RIGHT
+
+    slide_merge(grid: list[list[int]], direction: Direction) -> tuple[list[list[int]], int]:
+        Slide-and-merge tiles in the given direction.
+        Args:
+            grid: N×N grid of tile values (mutable input; deep-copied internally).
+            direction: Slide direction (Direction.UP, DOWN, LEFT, or RIGHT).
+        Returns:
+            Tuple of (new_grid, score_delta):
+                new_grid: New N×N grid after slide-and-merge.
+                score_delta: Points earned from merges (sum of merged tile values).
+        Raises:
+            ValueError: If grid is empty or not square.
 """
 
 from __future__ import annotations
@@ -34,6 +47,26 @@ class Direction(enum.Enum):
     DOWN = "DOWN"
     LEFT = "LEFT"
     RIGHT = "RIGHT"
+
+
+def _compact_left(items: list[int]) -> list[int]:
+    """Compact non-zero tile values to the left, preserving order.
+
+    Args:
+        items: A list of tile values (0 = empty).
+
+    Returns:
+        A new list of the same length with non-zero tiles gathered
+        from the left, and trailing zeros filling the remaining positions.
+    """
+    length = len(items)
+    slid: list[int] = [0] * length
+    write_index = 0
+    for tile in items:
+        if tile != 0:
+            slid[write_index] = tile
+            write_index += 1
+    return slid
 
 
 def _slide_row_left(row: list[int]) -> tuple[list[int], int]:
@@ -53,12 +86,7 @@ def _slide_row_left(row: list[int]) -> tuple[list[int], int]:
     length = len(row)
 
     # Step 1: Slide non-zero tiles left — close all gaps.
-    slided: list[int] = [0] * length
-    write_index = 0
-    for tile in row:
-        if tile != 0:
-            slided[write_index] = tile
-            write_index += 1
+    slid = _compact_left(row)
 
     # Step 2: Merge adjacent equal pairs left-to-right with skip.
     # Each tile participates in at most one merge per pass.
@@ -69,25 +97,20 @@ def _slide_row_left(row: list[int]) -> tuple[list[int], int]:
     while source_index < length:
         if (
             source_index < length - 1
-            and slided[source_index] != 0
-            and slided[source_index] == slided[source_index + 1]
+            and slid[source_index] != 0
+            and slid[source_index] == slid[source_index + 1]
         ):
             # Pair found: merge and skip the partner tile.
-            merged[dest_index] = slided[source_index] * 2
+            merged[dest_index] = slid[source_index] * 2
             row_score += merged[dest_index]
             source_index += 2
         else:
-            merged[dest_index] = slided[source_index]
+            merged[dest_index] = slid[source_index]
             source_index += 1
         dest_index += 1
 
     # Step 3: Slide left again to close gaps created by merges.
-    final: list[int] = [0] * length
-    write_index = 0
-    for tile in merged:
-        if tile != 0:
-            final[write_index] = tile
-            write_index += 1
+    final = _compact_left(merged)
 
     return final, row_score
 
