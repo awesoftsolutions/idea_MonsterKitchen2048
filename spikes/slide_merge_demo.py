@@ -8,6 +8,9 @@ Usage:
     poetry run python spikes/slide_merge_demo.py
 """
 
+# CHANGELOG:
+# - Sprint 2: Created interactive console demo for slide/merge algorithm
+
 import os
 import random
 import sys

@@ -12,6 +12,9 @@ NOTE: This script expects SlideResult to be importable from spikes.slide_merge.
       During TDD red phase it will fail with ImportError — this is expected.
 """
 
+# CHANGELOG:
+# - Sprint 2: Created standalone validation script for SlideResult dataclass contract
+
 from __future__ import annotations
 
 import os

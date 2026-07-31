@@ -39,6 +39,9 @@ Public API:
             ValueError: If grid is empty or not square.
 """
 
+# CHANGELOG:
+# - Sprint 2: Created slide-and-merge algorithm for NxN grid with direction normalization
+
 from __future__ import annotations
 
 import copy
