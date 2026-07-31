@@ -1,4 +1,5 @@
 """Framework spike: 700x800 window, blue placeholder rect, Escape/close handling, screenshot capture."""
+
 # CHANGELOG:
 # - Sprint 1: Created framework spike — pygame 700x800 window with blue placeholder rect, event handling, and screenshot capture
 import os
@@ -44,7 +45,9 @@ running = True
 frame_count = 0
 while running:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+        if event.type == pygame.QUIT or (
+            event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
+        ):
             running = False
     screen.fill(BACKGROUND_COLOR)
     pygame.draw.rect(screen, RECT_COLOR, (RECT_X, RECT_Y, RECT_SIZE, RECT_SIZE))

@@ -90,7 +90,9 @@ def main() -> None:
         all_passed &= check(False, "pyproject.toml does not exist")
 
     # --- AC-4: framework_spike.py is standalone, ~40 lines, no other spike imports ---
-    print("\nAC-4: framework_spike.py is standalone (~40 lines, only pygame/os/sys imports)")
+    print(
+        "\nAC-4: framework_spike.py is standalone (~40 lines, only pygame/os/sys imports)"
+    )
     spike_path = os.path.join("spikes", "framework_spike.py")
     if os.path.exists(spike_path):
         with open(spike_path, encoding="utf-8") as f:
@@ -99,7 +101,9 @@ def main() -> None:
 
         # Count non-blank, non-comment lines (actual code lines)
         code_lines = [
-            line_text for line_text in spike_lines if line_text.strip() and not line_text.strip().startswith("#")
+            line_text
+            for line_text in spike_lines
+            if line_text.strip() and not line_text.strip().startswith("#")
         ]
         all_passed &= check(
             len(code_lines) <= 55,
@@ -136,16 +140,12 @@ def main() -> None:
 
     # --- AC-6: spikes/ and visual-proof/ directories exist ---
     print("\nAC-6: Required directories exist")
-    all_passed &= check(
-        os.path.isdir("spikes"), "spikes/ directory exists"
-    )
+    all_passed &= check(os.path.isdir("spikes"), "spikes/ directory exists")
     all_passed &= check(
         not os.path.exists(os.path.join("spikes", "__init__.py")),
         "spikes/ does NOT contain __init__.py",
     )
-    all_passed &= check(
-        os.path.isdir("visual-proof"), "visual-proof/ directory exists"
-    )
+    all_passed &= check(os.path.isdir("visual-proof"), "visual-proof/ directory exists")
 
     # --- AC-7: .gitignore contains required entries ---
     print("\nAC-7: .gitignore contains required entries")
@@ -154,7 +154,12 @@ def main() -> None:
         with open(gitignore_path, encoding="utf-8") as f:
             gitignore_content = f.read()
         required_entries = [
-            "*.spec", ".favur/", "__pycache__/", ".venv", "dist/", "build/"
+            "*.spec",
+            ".favur/",
+            "__pycache__/",
+            ".venv",
+            "dist/",
+            "build/",
         ]
         for entry in required_entries:
             all_passed &= check(

@@ -27,7 +27,7 @@ FINDINGS_DOC: Path = PROJECT_ROOT / "docs" / "pyinstaller-findings.md"
 BUILD_TIMEOUT: int = 300  # PyInstaller build can be slow
 LAUNCH_TIMEOUT: int = 30  # Binary should exit in <1s; 30s is a generous safety margin
 IMPORT_TIMEOUT: int = 30  # PyInstaller import check
-GIT_TIMEOUT: int = 15     # git status is instant
+GIT_TIMEOUT: int = 15  # git status is instant
 
 # Required section headers in docs/pyinstaller-findings.md
 REQUIRED_FINDINGS_SECTIONS: list[str] = [
@@ -73,7 +73,10 @@ def test_pyinstaller_installed() -> tuple[bool, str]:
     Verifies: AC-1.
     """
     cmd = [
-        "poetry", "run", "python", "-c",
+        "poetry",
+        "run",
+        "python",
+        "-c",
         "import PyInstaller; print(PyInstaller.__version__)",
     ]
 
@@ -85,9 +88,15 @@ def test_pyinstaller_installed() -> tuple[bool, str]:
             timeout=IMPORT_TIMEOUT,
         )
     except FileNotFoundError:
-        return False, "SMOKE-1: 'poetry' command not found — is Poetry installed and on PATH?"
+        return (
+            False,
+            "SMOKE-1: 'poetry' command not found — is Poetry installed and on PATH?",
+        )
     except subprocess.TimeoutExpired:
-        return False, f"SMOKE-1: Timed out after {IMPORT_TIMEOUT}s waiting for PyInstaller import"
+        return (
+            False,
+            f"SMOKE-1: Timed out after {IMPORT_TIMEOUT}s waiting for PyInstaller import",
+        )
 
     if result.returncode != 0:
         stderr_lines = result.stderr.strip().splitlines()
@@ -99,7 +108,10 @@ def test_pyinstaller_installed() -> tuple[bool, str]:
 
     version = result.stdout.strip()
     if not version:
-        return False, "SMOKE-1 FAIL: PyInstaller imported but printed empty version string"
+        return (
+            False,
+            "SMOKE-1 FAIL: PyInstaller imported but printed empty version string",
+        )
 
     return True, f"SMOKE-1 PASS: PyInstaller version {version}"
 
@@ -122,12 +134,19 @@ def test_build_produces_binary() -> tuple[bool, str]:
             cwd=str(PROJECT_ROOT),
         )
     except FileNotFoundError:
-        return False, "SMOKE-2: 'poetry' command not found — is Poetry installed and on PATH?"
+        return (
+            False,
+            "SMOKE-2: 'poetry' command not found — is Poetry installed and on PATH?",
+        )
     except subprocess.TimeoutExpired:
         return False, f"SMOKE-2: Build timed out after {BUILD_TIMEOUT}s"
 
     if result.returncode != 0:
-        stderr_tail = result.stderr.strip().splitlines()[-3:] if result.stderr.strip() else ["(no stderr)"]
+        stderr_tail = (
+            result.stderr.strip().splitlines()[-3:]
+            if result.stderr.strip()
+            else ["(no stderr)"]
+        )
         return False, (
             f"SMOKE-2 FAIL: PyInstaller build exited with code {result.returncode}\n"
             f"  stderr (last 3 lines):\n    " + "\n    ".join(stderr_tail)
@@ -189,7 +208,10 @@ def test_binary_launches_cleanly() -> tuple[bool, str]:
             f"  stderr: {result.stderr.strip()[:200]}"
         )
 
-    return True, "SMOKE-3 PASS: Binary launched with offscreen rendering, exited cleanly (exit code 0)"
+    return (
+        True,
+        "SMOKE-3 PASS: Binary launched with offscreen rendering, exited cleanly (exit code 0)",
+    )
 
 
 def test_build_artifacts_gitignored() -> tuple[bool, str]:
@@ -234,7 +256,10 @@ def test_build_artifacts_gitignored() -> tuple[bool, str]:
             "  offending paths:\n    " + "\n    ".join(offending_lines)
         )
 
-    return True, "SMOKE-4 PASS: All build artifacts correctly gitignored (dist/, build/, *.spec)"
+    return (
+        True,
+        "SMOKE-4 PASS: All build artifacts correctly gitignored (dist/, build/, *.spec)",
+    )
 
 
 def test_findings_document_exists() -> tuple[bool, str]:
@@ -254,8 +279,7 @@ def test_findings_document_exists() -> tuple[bool, str]:
     content = FINDINGS_DOC.read_text(encoding="utf-8")
 
     missing_sections = [
-        section for section in REQUIRED_FINDINGS_SECTIONS
-        if section not in content
+        section for section in REQUIRED_FINDINGS_SECTIONS if section not in content
     ]
 
     if missing_sections:
