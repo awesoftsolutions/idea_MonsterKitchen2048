@@ -1,6 +1,6 @@
 """Tests for the Rules module — move legality and game-over detection.
 
-14 test cases covering:
+35 test cases covering:
     - Module imports (AC-1, AC-7)
     - Move legality for all 4 directions (AC-2)
     - Legal move enumeration (AC-3)
@@ -26,6 +26,30 @@ class SimpleBoard:
 
     def __init__(self, grid: list[list[int]]) -> None:
         self.grid = grid
+
+
+class SimpleBoardExtended:
+    """Test-only stub implementing BoardProtocol with rotten overlay support.
+
+    Provides both a ``grid`` attribute (BoardProtocol) and a
+    ``get_rotten_overlay()`` method for twist-aware game-over tests.
+    Standalone class — not a subclass of SimpleBoard — to avoid
+    inheritance coupling in test stubs.
+    """
+
+    def __init__(
+        self, grid: list[list[int]], rotten_overlay: list[list[int]]
+    ) -> None:
+        self.grid = grid
+        self._rotten_overlay = rotten_overlay
+
+    def get_rotten_overlay(self) -> list[list[int]]:
+        """Return a defensive copy of the rotten overlay grid.
+
+        Matches the behavior of ``Board.get_rotten_overlay()`` which
+        returns ``[row[:] for row in self._rotten_overlay]``.
+        """
+        return [row[:] for row in self._rotten_overlay]
 
 
 # ---------------------------------------------------------------------------
@@ -292,3 +316,399 @@ def test_rules_direction_is_board_direction() -> None:
         "Direction imported at top of file must be the same object as "
         "Direction from src.core.board — rules.py must not define its own"
     )
+
+
+# ---------------------------------------------------------------------------
+# Twist-aware game-over detection tests (TDD red phase)
+# 19 new tests — 9 will FAIL (overlay not inspected), 10 will PASS (backward compat)
+# ---------------------------------------------------------------------------
+
+
+def test_rotten_tile_at_center_full_board_prevents_over() -> None:
+    """Full board (no merges) with a single rotten tile at (1,1) countdown=3.
+
+    is_game_over() returns False — rotten tile means game continues
+    because rotten-merges-rotten could clear tiles. (AC-2, AC-3)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[1][1] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_rotten_tile_at_corner_full_board_prevents_over() -> None:
+    """Full board (no merges) with a single rotten tile at (0,0) countdown=1.
+
+    Countdown=1 is still a live rotten tile — game continues. (AC-2, AC-3)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 1
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_rotten_tile_at_edge_full_board_prevents_over() -> None:
+    """Full board (no merges) with a single rotten tile at (0,2) countdown=2.
+
+    Tests edge position — game continues. (AC-2, AC-3)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][2] = 2
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_two_rotten_tiles_full_board_prevents_over() -> None:
+    """Full board (no merges) with rotten at (0,0)=1 and (3,3)=2.
+
+    Multiple rotten tiles at opposite corners — game continues. (AC-3)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 1
+    overlay[3][3] = 2
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_four_rotten_tiles_full_board_prevents_over() -> None:
+    """Full board (no merges) with rotten at all four corners (countdown=3).
+
+    Four rotten tiles at corners — game continues. (AC-3)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    overlay[0][3] = 3
+    overlay[3][0] = 3
+    overlay[3][3] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_rotten_tile_non_full_board_not_over() -> None:
+    """Board has empty cells AND a rotten tile.
+
+    Empty cells prevent game-over regardless of overlay. (AC-2)
+    """
+    rules = Rules()
+    grid = [
+        [2, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    board = SimpleBoardExtended(grid=grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_no_rotten_non_full_board_not_over() -> None:
+    """Board has empty cells, overlay is all zeros.
+
+    Empty cells prevent game-over. (AC-2)
+    """
+    rules = Rules()
+    grid = [
+        [2, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    board = SimpleBoardExtended(grid=grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_full_no_merges_all_zeros_overlay_is_over() -> None:
+    """Full board (no merges), overlay all zeros (no rotten tiles).
+
+    Game is over — normal game-over with twist module present but
+    no rotten tiles. (AC-4, AC-7)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is True
+
+
+def test_full_no_merges_no_overlay_support_is_over() -> None:
+    """Full board using old SimpleBoard (no get_rotten_overlay), has_rotten=False.
+
+    Backward compat path — game is over. (AC-4, AC-5)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    board = SimpleBoard(grid=full_grid)
+    assert rules.is_game_over(board, has_rotten=False) is True
+
+
+def test_mixed_countdowns_full_board_prevents_over() -> None:
+    """Full board with rotten overlays at various countdowns.
+
+    Mix of countdown=1, 2, 3 across positions. Any non-zero value
+    prevents game-over. (AC-2)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 1
+    overlay[0][1] = 2
+    overlay[0][2] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_all_zero_overlay_behaves_as_no_rotten() -> None:
+    """Full board (no merges), overlay explicitly all zeros, has_rotten=False.
+
+    All-zero overlay is equivalent to no rotten — game is over. (AC-7)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board, has_rotten=False) is True
+
+
+def test_is_game_over_invariant_with_rotten() -> None:
+    """If is_game_over is True then get_legal_moves returns [].
+
+    Invariant preserved across overlay and non-overlay boards.
+    Extends existing invariant test. (AC-2)
+    """
+    rules = Rules()
+
+    # Non-overlay board — classic backward compat
+    classic = SimpleBoard(
+        grid=[
+            [1, 2, 1, 2],
+            [2, 1, 2, 1],
+            [1, 2, 1, 2],
+            [2, 1, 2, 1],
+        ]
+    )
+
+    # Overlay board with no rotten tiles
+    overlay_clean = SimpleBoardExtended(
+        grid=[
+            [1, 2, 1, 2],
+            [2, 1, 2, 1],
+            [1, 2, 1, 2],
+            [2, 1, 2, 1],
+        ],
+        rotten_overlay=[[0] * 4 for _ in range(4)],
+    )
+
+    # Overlay board with rotten tiles
+    grid_rotten = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay_with_rotten = [[0] * 4 for _ in range(4)]
+    overlay_with_rotten[0][0] = 2
+    rotten_board = SimpleBoardExtended(
+        grid=grid_rotten, rotten_overlay=overlay_with_rotten
+    )
+
+    boards = [classic, overlay_clean, rotten_board]
+    for board in boards:
+        if rules.is_game_over(board):
+            assert rules.get_legal_moves(board) == [], (
+                "invariant violated: is_game_over=True but get_legal_moves is non-empty"
+            )
+
+
+def test_rotten_overlay_full_no_merges_no_legal_moves() -> None:
+    """Full board with no merges and overlay all zeros.
+
+    Confirms get_legal_moves returns [] and is_game_over returns True
+    when no rotten tiles exist. (AC-2)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.get_legal_moves(board) == []
+    assert rules.is_game_over(board) is True
+
+
+def test_overlay_nonzero_but_has_empty_cells_not_over() -> None:
+    """Board with ONE empty cell at (3,3). Overlay has rotten at (0,0)=3.
+
+    Empty cells prevent game-over at Phase 1 — overlay not inspected.
+    (AC-2)
+    """
+    rules = Rules()
+    grid = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+    grid[0][0] = 2  # minimal non-empty cell
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    board = SimpleBoardExtended(grid=grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_has_rotten_fallback_without_overlay_method() -> None:
+    """Use old SimpleBoard (no overlay). Call with has_rotten=True -> not over.
+
+    Call with has_rotten=False -> game over. Verifies the fallback path.
+    (AC-4, AC-5)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    board = SimpleBoard(grid=full_grid)
+    # has_rotten=True on non-overlay board -> game continues
+    assert rules.is_game_over(board, has_rotten=True) is False
+    # has_rotten=False on non-overlay board -> game is over
+    assert rules.is_game_over(board, has_rotten=False) is True
+
+
+def test_overlay_inspection_overrides_has_rotten_false() -> None:
+    """SimpleBoardExtended with non-zero overlay, has_rotten=False.
+
+    Overlay inspection overrides the stale boolean — game continues.
+    (AC-2)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    # has_rotten=False but overlay has non-zero -> overlay inspection wins
+    assert rules.is_game_over(board, has_rotten=False) is False
+
+
+def test_rotten_all_corner_positions() -> None:
+    """Full board with rotten at all four corners.
+
+    Positions: (0,0), (0,3), (3,0), (3,3). is_game_over -> False. (AC-9)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 1
+    overlay[0][3] = 2
+    overlay[3][0] = 3
+    overlay[3][3] = 1
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_rotten_center_position() -> None:
+    """Full board with rotten at inner cells (1,1) and (2,2).
+
+    is_game_over -> False. (AC-9)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[1][1] = 2
+    overlay[2][2] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_merges_possible_with_rotten_not_over() -> None:
+    """Full board with mergeable tiles AND rotten overlay.
+
+    Merges exist -> is_game_over False regardless of overlay. (AC-2)
+    """
+    rules = Rules()
+    merge_grid = [
+        [2, 2, 4, 4],
+        [4, 8, 16, 32],
+        [64, 128, 256, 512],
+        [1024, 2048, 1024, 2048],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 2
+    overlay[3][3] = 1
+    board = SimpleBoardExtended(grid=merge_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False

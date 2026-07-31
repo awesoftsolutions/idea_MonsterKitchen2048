@@ -8,7 +8,9 @@ Direction, SlideResult, and slide_merge are imported from src.core.board
 as the single source of truth per the Tech Debt Reconciliation (ADR-013).
 
 Public API:
-    BoardProtocol: Minimal board interface with a ``grid`` property.
+    BoardProtocol: Minimal board interface with a ``grid`` property
+        and an optional ``get_rotten_overlay()`` method for
+        twist-aware game-over detection.
     Rules: Stateless class for move legality and game-over detection.
 
 Dependencies: typing -- Python stdlib only.
@@ -40,6 +42,17 @@ class BoardProtocol(Protocol):
     @property
     def grid(self) -> list[list[int]]:
         """The 4x4 grid of tile values. 0 = empty."""
+        ...
+
+    def get_rotten_overlay(self) -> list[list[int]]:
+        """Return a 4x4 grid where 0=healthy, 1-3=countdown remaining.
+
+        This is an OPTIONAL protocol method -- Rules checks for its
+        existence via getattr duck-typing, not Protocol conformance.
+        Boards that implement this method get twist-aware game-over
+        detection; boards that lack it fall back to the ``has_rotten``
+        boolean parameter.
+        """
         ...
 
 
@@ -95,18 +108,23 @@ class Rules:
 
         The game is over when:
         1. There are no empty cells (all tiles non-zero), AND
-        2. No legal move exists in any direction.
+        2. There are no active rotten tiles in the overlay, AND
+        3. No legal move exists in any direction.
 
-        The ``has_rotten`` flag provides twist-awareness: when True on a
-        full board with non-zero tiles, the game is NOT over because
-        rotten tiles could still be cleared via rotten-merges-rotten.
+        When the board provides ``get_rotten_overlay()``, Phase 2 inspects
+        the actual overlay grid for non-zero values (any countdown > 0).
+        If rotten tiles exist, the game is NOT over because
+        rotten-merges-rotten could still clear them.  When the board does
+        NOT provide ``get_rotten_overlay()``, the ``has_rotten`` boolean
+        parameter is used as a backward-compatible fallback.
 
         Invariant: if any direction is legal, returns False.
 
         Args:
             board: An object satisfying BoardProtocol.
-            has_rotten: If True, prevents premature game-over on full boards
-                with non-zero tiles (rotten tiles may still be cleared).
+            has_rotten: Backward-compatible fallback for boards without
+                ``get_rotten_overlay()``.  Ignored when the board provides
+                the overlay method (overlay inspection takes precedence).
 
         Returns:
             True if the game is over, False otherwise.
@@ -119,9 +137,29 @@ class Rules:
                 if value == 0:
                     return False
 
-        # Phase 2: has_rotten twist-awareness — rotten tiles can still be cleared,
-        # so the game is NOT over even on a full board.
-        if has_rotten:
+        # Phase 2: Twist-awareness via overlay inspection.
+        # Use getattr duck-typing to check if board supports overlay access.
+        # This preserves backward compatibility with stubs that lack the method.
+        actual_has_rotten = False
+
+        overlay_method = getattr(board, "get_rotten_overlay", None)
+        if overlay_method is not None:
+            # Board supports overlay access -- inspect the actual grid.
+            overlay = overlay_method()
+            for row in overlay:
+                for value in row:
+                    if value > 0:
+                        actual_has_rotten = True
+                        break
+                if actual_has_rotten:
+                    break
+        else:
+            # Board does NOT support overlay -- fall back to the boolean parameter.
+            actual_has_rotten = has_rotten
+
+        # If rotten tiles exist, the game is NOT over.
+        # Reasoning: rotten-merges-rotten could still clear tiles on a future move.
+        if actual_has_rotten:
             return False
 
         # Phase 3: Check all directions for legal moves.
