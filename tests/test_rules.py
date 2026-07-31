@@ -6,7 +6,7 @@ slide_merge function and Direction enum.
 
 Acceptance criteria coverage:
     AC-1  — test_direction_enum_members
-    AC-2  — test_slide_merge_returns_tuple_with_two_items
+    AC-2  — test_slide_merge_returns_slide_result
     AC-3  — test_simple_slide_left_no_merge
     AC-4  — test_simple_merge_left
     AC-5  — test_one_merge_per_tile
@@ -28,7 +28,7 @@ import copy
 
 import pytest
 
-from src.core.rules import Direction, slide_merge
+from src.core.rules import Direction, SlideResult, slide_merge
 
 
 # ---------------------------------------------------------------------------
@@ -50,15 +50,14 @@ def test_direction_enum_members() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_slide_merge_returns_tuple_with_two_items() -> None:
-    """slide_merge returns (list[list[int]], int)."""
+def test_slide_merge_returns_slide_result() -> None:
+    """slide_merge returns a SlideResult with grid (list) and score (int)."""
     grid = [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     result = slide_merge(grid, Direction.LEFT)
 
-    assert type(result) is tuple
-    assert len(result) == 2
-    assert isinstance(result[0], list)
-    assert isinstance(result[1], int)
+    assert isinstance(result, SlideResult)
+    assert isinstance(result.grid, list)
+    assert isinstance(result.score, int)
 
 
 # ---------------------------------------------------------------------------
@@ -71,10 +70,10 @@ def test_simple_slide_left_no_merge() -> None:
     grid = [[0, 0, 2, 4]]
     expected_grid = [[2, 4, 0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == expected_grid
-    assert score_delta == 0
+    assert result.grid == expected_grid
+    assert result.score == 0
 
 
 # ---------------------------------------------------------------------------
@@ -87,10 +86,10 @@ def test_simple_merge_left() -> None:
     grid = [[2, 2, 0, 0]]
     expected_grid = [[4, 0, 0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == expected_grid
-    assert score_delta == 4
+    assert result.grid == expected_grid
+    assert result.score == 4
 
 
 # ---------------------------------------------------------------------------
@@ -103,11 +102,11 @@ def test_one_merge_per_tile() -> None:
     grid = [[2, 2, 2, 0]]
     expected_grid = [[4, 2, 0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == expected_grid
-    assert new_grid != [[8, 0, 0, 0]], "Double merge must not occur"
-    assert score_delta == 4
+    assert result.grid == expected_grid
+    assert result.grid != [[8, 0, 0, 0]], "Double merge must not occur"
+    assert result.score == 4
 
 
 # ---------------------------------------------------------------------------
@@ -120,10 +119,10 @@ def test_edge_blocking_left() -> None:
     grid = [[2, 0, 0, 2]]
     expected_grid = [[4, 0, 0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == expected_grid
-    assert score_delta == 4
+    assert result.grid == expected_grid
+    assert result.score == 4
 
 
 # ---------------------------------------------------------------------------
@@ -136,10 +135,10 @@ def test_full_row_no_movement() -> None:
     grid = [[2, 4, 8, 16]]
     expected_grid = [[2, 4, 8, 16]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == expected_grid
-    assert score_delta == 0
+    assert result.grid == expected_grid
+    assert result.score == 0
 
 
 # ---------------------------------------------------------------------------
@@ -152,10 +151,10 @@ def test_slide_down_vertical_merge() -> None:
     grid = [[2, 0], [2, 0]]
     expected_grid = [[0, 0], [4, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.DOWN)
+    result = slide_merge(grid, Direction.DOWN)
 
-    assert new_grid == expected_grid
-    assert score_delta == 4
+    assert result.grid == expected_grid
+    assert result.score == 4
 
 
 def test_slide_up_vertical_merge() -> None:
@@ -165,10 +164,10 @@ def test_slide_up_vertical_merge() -> None:
     # Column 1: [0, 2, 2, 0] → UP → [4, 0, 0, 0]
     expected_grid = [[4, 4], [0, 0], [0, 0], [0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.UP)
+    result = slide_merge(grid, Direction.UP)
 
-    assert new_grid == expected_grid
-    assert score_delta == 4
+    assert result.grid == expected_grid
+    assert result.score == 4
 
 
 def test_slide_right_full() -> None:
@@ -176,10 +175,10 @@ def test_slide_right_full() -> None:
     grid = [[0, 0, 2, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     expected_grid = [[0, 0, 0, 4], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.RIGHT)
+    result = slide_merge(grid, Direction.RIGHT)
 
-    assert new_grid == expected_grid
-    assert score_delta == 4
+    assert result.grid == expected_grid
+    assert result.score == 4
 
 
 # ---------------------------------------------------------------------------
@@ -192,10 +191,10 @@ def test_score_sum_of_all_merges() -> None:
     grid = [[2, 2, 4, 4]]
     expected_grid = [[4, 8, 0, 0]]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == expected_grid
-    assert score_delta == 12, "Score must be 4 (from 2+2) + 8 (from 4+4) = 12"
+    assert result.grid == expected_grid
+    assert result.score == 12, "Score must be 4 (from 2+2) + 8 (from 4+4) = 12"
 
 
 # ---------------------------------------------------------------------------
@@ -208,10 +207,10 @@ def test_input_grid_not_mutated() -> None:
     grid = [[0, 2, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     grid_snapshot = copy.deepcopy(grid)
 
-    new_grid, _score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
     assert grid == grid_snapshot, "Original grid must not be mutated"
-    assert new_grid is not grid, "Returned grid must be a new object"
+    assert result.grid is not grid, "Returned grid must be a new object"
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +250,7 @@ def test_all_zeros_stays_zeros() -> None:
         [0, 0, 0, 0],
     ]
 
-    new_grid, score_delta = slide_merge(grid, Direction.LEFT)
+    result = slide_merge(grid, Direction.LEFT)
 
-    assert new_grid == grid
-    assert score_delta == 0
+    assert result.grid == grid
+    assert result.score == 0

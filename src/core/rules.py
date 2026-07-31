@@ -21,15 +21,20 @@ Public API:
         Enumeration of the four slide directions.
         Members: UP, DOWN, LEFT, RIGHT
 
-    slide_merge(grid: list[list[int]], direction: Direction) -> tuple[list[list[int]], int]:
+    SlideResult (dataclass):
+        Result container for slide_merge() with two fields:
+            grid: New N×N grid after slide-and-merge.
+            score: Points earned from merges (sum of merged tile values).
+
+    slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
         Slide-and-merge tiles in the given direction.
         Args:
             grid: N×N grid of tile values (mutable input; deep-copied internally).
             direction: Slide direction (Direction.UP, DOWN, LEFT, or RIGHT).
         Returns:
-            Tuple of (new_grid, score_delta):
-                new_grid: New N×N grid after slide-and-merge.
-                score_delta: Points earned from merges (sum of merged tile values).
+            SlideResult with two fields:
+                grid: New N×N grid after slide-and-merge.
+                score: Points earned from merges (sum of merged tile values).
         Raises:
             ValueError: If grid is empty or not square.
 """
@@ -37,6 +42,7 @@ Public API:
 from __future__ import annotations
 
 import copy
+from dataclasses import dataclass
 import enum
 
 
@@ -47,6 +53,19 @@ class Direction(enum.Enum):
     DOWN = "DOWN"
     LEFT = "LEFT"
     RIGHT = "RIGHT"
+
+
+@dataclass
+class SlideResult:
+    """Result of a slide-and-merge operation.
+
+    Attributes:
+        grid: The NxN grid state after slide-and-merge.
+        score: Sum of all merged tile values (0 if no merges occurred).
+    """
+
+    grid: list[list[int]]
+    score: int = 0
 
 
 def _compact_left(items: list[int]) -> list[int]:
@@ -129,9 +148,7 @@ def _transpose(grid: list[list[int]]) -> list[list[int]]:
     return [[grid[r][c] for r in range(num_rows)] for c in range(num_cols)]
 
 
-def slide_merge(
-    grid: list[list[int]], direction: Direction
-) -> tuple[list[list[int]], int]:
+def slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
     """Slide and merge tiles in the given direction.
 
     Args:
@@ -139,7 +156,7 @@ def slide_merge(
         direction: One of Direction.UP, DOWN, LEFT, RIGHT.
 
     Returns:
-        (new_grid, score_delta) — new grid state, sum of merged tile values.
+        SlideResult with grid (new grid state) and score (sum of merged tile values).
 
     Raises:
         ValueError: If grid is empty or not square.
@@ -193,4 +210,4 @@ def slide_merge(
             total_score += row_score
         result_grid = _transpose(processed)
 
-    return result_grid, total_score
+    return SlideResult(grid=result_grid, score=total_score)
