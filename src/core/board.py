@@ -16,8 +16,10 @@ Dependencies:
     copy, enum, random, dataclasses — stdlib only.
 
 Used-by:
-    Future sprints will add src/core/score.py (score persistence),
-    src/core/history.py (undo stack), and Phase 3 rendering layers.
+    src/core/score.py (score persistence) — Sprint 1 Task 2,
+    src/core/history.py (undo stack) — Sprint 1 Task 5,
+    src/core/rules.py (move legality, re-exports slide_merge).
+    Phase 3 will add rendering layers.
 
 Public API:
     Constants:
@@ -176,6 +178,14 @@ class Board:
         self._grid: list[list[int]] = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
         self._score: int = 0
         self._moves: int = 0
+
+    @property
+    def grid(self) -> list[list[int]]:
+        """The 4x4 grid of tile values. 0 = empty.
+
+        Copy semantics match get_grid() — mutation does not affect Board internals.
+        """
+        return self.get_grid()
 
     def get_grid(self) -> list[list[int]]:
         """Return a defensive copy of the internal grid.

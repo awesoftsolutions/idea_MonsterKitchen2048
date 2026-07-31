@@ -117,12 +117,10 @@ class Rules:
                 if value == 0:
                     return False
 
-        # Phase 2: has_rotten twist-awareness.
+        # Phase 2: has_rotten twist-awareness — rotten tiles can still be cleared,
+        # so the game is NOT over even on a full board.
         if has_rotten:
-            for row in grid:
-                for value in row:
-                    if value != 0:
-                        return False
+            return False
 
         # Phase 3: Check all directions for legal moves.
         legal = self.get_legal_moves(board)

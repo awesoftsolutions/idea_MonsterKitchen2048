@@ -78,7 +78,8 @@ def is_game_over(grid: list[list[int]]) -> bool:
         True if no direction produces a board change.
     """
     for direction in Direction:
-        new_grid, _ = slide_merge(grid, direction)
+        result = slide_merge(grid, direction)
+        new_grid = result.grid
         if new_grid != grid:
             return False
     return True
@@ -180,7 +181,9 @@ def main() -> None:
                 "d": Direction.RIGHT,
             }[move]
 
-            new_grid, move_score = slide_merge(grid, direction)
+            result = slide_merge(grid, direction)
+            new_grid = result.grid
+            move_score = result.score
 
             if new_grid == grid:
                 print("No valid move in that direction.")
