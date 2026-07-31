@@ -9,6 +9,10 @@ package-mode = false
 python = "^3.11"
 pygame-ce = "^2.5"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.1.1"
+pyinstaller = {version = "^6.21.0", python = ">=3.11,<3.16"}
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
