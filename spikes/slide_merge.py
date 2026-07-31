@@ -8,13 +8,13 @@ transpose back.
 
 System: Core game logic module for slide-and-merge operations. Pure
     algorithm with no rendering, I/O, or framework dependencies. Consumed
-    by board.py (Phase 2) and test_rules.py.
+    by test_validation.py and slide_merge_demo.py.
 
 Dependencies: copy, enum — Python stdlib only. Zero pygame or display
     dependencies, fulfilling the logic-rendering separation principle.
 
-Used-by: board.py (Phase 2 production integration), test_rules.py
-    (pytest validation suite).
+Used-by: test_validation.py (standalone validation script),
+    slide_merge_demo.py (interactive console demo).
 
 Public API:
     Direction (enum.Enum):

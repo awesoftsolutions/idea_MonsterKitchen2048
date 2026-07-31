@@ -1,8 +1,8 @@
 """Interactive 4×4 console demo for the 2048 slide/merge algorithm.
 
 Runs a full game loop using keyboard input (w/a/s/d/q) on a 4×4 grid.
-Demonstrates the slide_merge algorithm from src.core.rules.
-Only uses stdlib imports plus src.core.rules — zero pygame.
+Demonstrates the slide_merge algorithm from spikes.slide_merge.
+Only uses stdlib imports plus spikes.slide_merge — zero pygame.
 
 Usage:
     poetry run python spikes/slide_merge_demo.py
@@ -12,13 +12,13 @@ import os
 import random
 import sys
 
-# Ensure the project root is on sys.path so 'src.core.rules' resolves
+# Ensure the project root is on sys.path so 'spikes.slide_merge' resolves
 # when running as a standalone script: python spikes/slide_merge_demo.py
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from src.core.rules import Direction, slide_merge  # noqa: E402 — sys.path setup above
+from spikes.slide_merge import Direction, slide_merge  # noqa: E402 — sys.path setup above
 
 
 # ---------------------------------------------------------------------------

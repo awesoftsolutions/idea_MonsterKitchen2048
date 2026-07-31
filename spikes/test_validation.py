@@ -8,7 +8,7 @@ Exit codes:
     0 — all validations passed
     1 — one or more validations failed
 
-NOTE: This script expects SlideResult to be importable from src.core.rules.
+NOTE: This script expects SlideResult to be importable from spikes.slide_merge.
       During TDD red phase it will fail with ImportError — this is expected.
 """
 
@@ -17,10 +17,10 @@ from __future__ import annotations
 import os
 import sys
 
-# Ensure src/ is importable when running as a standalone script
+# Ensure spikes/ is importable when running as a standalone script
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.core.rules import Direction, SlideResult, slide_merge  # noqa: E402, I001
+from spikes.slide_merge import Direction, SlideResult, slide_merge  # noqa: E402, I001
 
 passed = 0
 failed = 0

@@ -111,7 +111,7 @@ Produces `dist/framework_spike.exe`. Run the binary directly to launch the game 
 ### Running the Slide/Merge Validation
 
 ```bash
-poetry run python spikes/test_slide_merge.py
+poetry run python spikes/test_validation.py
 ```
 
 Validates the slide/merge algorithm against hand-worked board states. Exits with code 0 on all pass.
@@ -119,11 +119,14 @@ Validates the slide/merge algorithm against hand-worked board states. Exits with
 ## Project Structure
 
 ```
-├── src/                    # Production source (Phase 2+)
 ├── spikes/                 # Research and validation scripts
-│   ├── framework_spike.py  # pygame-ce window spike
-│   ├── slide_merge.py      # Pure-Python slide/merge algorithm
-│   └── test_slide_merge.py # Algorithm validation script
+│   ├── framework_spike.py        # pygame-ce window spike
+│   ├── slide_merge.py            # Pure-Python slide/merge algorithm
+│   ├── slide_merge_demo.py       # Interactive console demo
+│   ├── test_validation.py        # Standalone validation script
+│   ├── test_pyinstaller_build.py # PyInstaller build validation
+│   ├── verify_constraint_compliance.py # Phase 1 constraint verification
+│   └── verify_scaffold.py        # Scaffold verification
 ├── visual-proof/           # Screenshots and visual evidence
 ├── docs/                   # Project documentation
 │   └── twist-exploration.md # Twist exploration record
@@ -133,11 +136,11 @@ Validates the slide/merge algorithm against hand-worked board states. Exits with
 
 ## Phase 2 Handoff Notes
 
-- **Algorithm adoption**: `slide_merge()` in `spikes/slide_merge.py` is validated and ready for adoption into `src/core/board.py`. Same interface (`grid: list[list[int]], direction: Direction -> SlideResult`), same row-based approach.
+- **Algorithm adoption**: `slide_merge()` in `spikes/slide_merge.py` is validated and ready for adoption into the production board module (Phase 2). Same interface (`grid: list[list[int]], direction: Direction -> SlideResult`), same row-based approach.
 - **Grid size**: The algorithm is grid-agnostic. Monster Kitchen uses a 4×4 grid (operator decision, overriding SOW's 5×5). Phase 2 implements `Board` with `size=4`.
 - **Twist implementation**: The Rotten Food contamination mechanic spawns rotten tiles every 3–5 moves with a 3-turn countdown. When countdown expires, one adjacent tile is contaminated. Merging two identical rotten tiles removes both. Full specification in `docs/twist-exploration.md`.
 - **pygame-ce compatibility**: No issues found. Standard pygame API calls work as documented. No hidden-imports needed for PyInstaller.
-- **Testing approach**: Phase 1 used standalone validation scripts (not pytest). Phase 2 creates formal `src/tests/` with pytest. Hand-worked board states from `spikes/test_slide_merge.py` become seed cases for `tests/test_board.py`.
+- **Testing approach**: Phase 1 used standalone validation scripts (not pytest). Phase 2 creates formal pytest suites. Hand-worked board states from `spikes/test_validation.py` become seed cases for Phase 2 test modules.
 
 ## License
 
