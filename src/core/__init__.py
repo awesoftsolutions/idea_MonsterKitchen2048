@@ -10,6 +10,8 @@ Import order follows dependency chain: board (leaf) -> rules -> score.
 from src.core.board import Board, BoardState, Direction, SlideResult, slide_merge
 from src.core.rules import BoardProtocol, Rules
 from src.core.score import Score
+from src.core.achievements import Achievement, Achievements
+from src.core.twist import Twist, TwistEffect
 
 __all__ = [
     "Board",
@@ -20,4 +22,8 @@ __all__ = [
     "BoardProtocol",
     "Rules",
     "Score",
+    "Achievement",
+    "Achievements",
+    "Twist",
+    "TwistEffect",
 ]
