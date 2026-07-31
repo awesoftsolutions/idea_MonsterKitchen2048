@@ -1,8 +1,11 @@
 """Shared fixtures for Monster Kitchen test suite."""
 # CHANGELOG:
 # - Sprint 1: Add 4 shared test fixtures
+# - Sprint 2: Add seeded_rng and empty_board fixtures for twist tests
 
 from __future__ import annotations
+
+import random
 
 import pytest
 
@@ -47,3 +50,15 @@ def board_with_tiles_at_edges() -> Board:
     board.set_cell(3, 0, 8)
     board.set_cell(3, 3, 16)
     return board
+
+
+@pytest.fixture()
+def seeded_rng() -> random.Random:
+    """A Random instance seeded with 42 for deterministic tests."""
+    return random.Random(42)
+
+
+@pytest.fixture()
+def empty_board() -> Board:
+    """An empty 4x4 Board with seeded RNG for deterministic tests."""
+    return Board(random.Random(42))

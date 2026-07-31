@@ -15,11 +15,12 @@ System:
 Dependencies:
     copy, enum, random, dataclasses — stdlib only.
 
-Used-by:
-    src/core/score.py (score persistence) — Sprint 1 Task 2,
-    src/core/history.py (undo stack) — Sprint 1 Task 5,
-    src/core/rules.py (move legality, re-exports slide_merge).
-    Phase 3 will add rendering layers.
+ Used-by:
+     src/core/score.py (score persistence) — Sprint 1 Task 2,
+     src/core/history.py (undo stack) — Sprint 1 Task 5,
+     src/core/rules.py (move legality, re-exports slide_merge),
+     src/core/twist.py (contamination mechanic) — Sprint 2 Task 3.
+     Phase 3 will add rendering layers.
 
 Public API:
     Constants:
@@ -125,18 +126,23 @@ class BoardState:
     grid: list[list[int]]
     score: int = 0
     moves: int = 0
+    rotten_overlay: list[list[int]] | None = None
 
     def to_dict(self) -> dict:
         """Serialize to a JSON-compatible dict.
 
         Returns:
-            A dict with keys 'grid', 'score', 'moves'.
+            A dict with keys 'grid', 'score', 'moves', and optionally
+            'rotten_overlay' when twist state is active.
         """
-        return {
+        result: dict = {
             "grid": copy.deepcopy(self.grid),
             "score": self.score,
             "moves": self.moves,
         }
+        if self.rotten_overlay is not None:
+            result["rotten_overlay"] = copy.deepcopy(self.rotten_overlay)
+        return result
 
     @classmethod
     def from_dict(cls, data: dict) -> BoardState:
@@ -161,7 +167,13 @@ class BoardState:
         for i, row in enumerate(grid):
             if not isinstance(row, list) or len(row) != GRID_SIZE:
                 raise ValueError(f"Row {i} must have {GRID_SIZE} columns")
-        return cls(grid=copy.deepcopy(grid), score=score, moves=moves)
+        overlay = data.get("rotten_overlay", None)
+        return cls(
+            grid=copy.deepcopy(grid),
+            score=score,
+            moves=moves,
+            rotten_overlay=copy.deepcopy(overlay) if overlay is not None else None,
+        )
 
 
 class Board:
@@ -182,6 +194,7 @@ class Board:
         self._grid: list[list[int]] = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
         self._score: int = 0
         self._moves: int = 0
+        self._rotten_overlay: list[list[int]] | None = None
 
     @property
     def grid(self) -> list[list[int]]:
@@ -277,6 +290,7 @@ class Board:
         self._grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
         self._score = 0
         self._moves = 0
+        self._rotten_overlay = None
 
     def to_dict(self) -> dict:
         """Serialize the Board to a JSON-compatible dict.
@@ -284,10 +298,14 @@ class Board:
         Returns:
             A dict with keys 'grid', 'score', 'moves'.
         """
+        overlay_copy = None
+        if self._rotten_overlay is not None:
+            overlay_copy = [row[:] for row in self._rotten_overlay]
         state = BoardState(
             grid=self.get_grid(),
             score=self._score,
             moves=self._moves,
+            rotten_overlay=overlay_copy,
         )
         return state.to_dict()
 
@@ -306,7 +324,173 @@ class Board:
         board._grid = copy.deepcopy(state.grid)
         board._score = state.score
         board._moves = state.moves
+        if state.rotten_overlay is not None:
+            board._rotten_overlay = copy.deepcopy(state.rotten_overlay)
         return board
+
+    def spawn_tile(self) -> tuple[int, int]:
+        """Place a new tile at a random empty cell.
+
+        Tile value is 2 with 90% probability or 4 with 10% probability.
+
+        Returns:
+            The (row, col) position where the tile was placed.
+
+        Raises:
+            ValueError: If no empty cells exist on the board.
+        """
+        empty = self.get_empty_cells()
+        if not empty:
+            raise ValueError("No empty cells")
+        row, col = self._rng.choice(empty)
+        roll = self._rng.random()
+        value = 2 if roll < 0.9 else 4
+        self._grid[row][col] = value
+        return (row, col)
+
+    def get_empty_cells(self) -> list[tuple[int, int]]:
+        """Return list of (row, col) positions where value is 0.
+
+        Returns:
+            A list of all empty cell coordinates.
+        """
+        empty: list[tuple[int, int]] = []
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                if self._grid[row][col] == 0:
+                    empty.append((row, col))
+        return empty
+
+    def is_empty(self, row: int, col: int) -> bool:
+        """Check whether a cell is empty (value 0).
+
+        Args:
+            row: Row index (0-based).
+            col: Column index (0-based).
+
+        Returns:
+            True if the cell value is 0.
+
+        Raises:
+            IndexError: If row or col is out of bounds.
+        """
+        if not (0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE):
+            raise IndexError(
+                f"Cell ({row}, {col}) is out of bounds for {GRID_SIZE}x{GRID_SIZE} grid"
+            )
+        return self._grid[row][col] == 0
+
+    def get_neighbors(self, row: int, col: int) -> list[tuple[int, int]]:
+        """Return valid adjacent positions (UP, DOWN, LEFT, RIGHT) within grid bounds.
+
+        Args:
+            row: Row index (0-based).
+            col: Column index (0-based).
+
+        Returns:
+            A list of valid neighbor coordinates (2-4 depending on position).
+
+        Raises:
+            IndexError: If row or col is out of bounds.
+        """
+        if not (0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE):
+            raise IndexError(
+                f"Cell ({row}, {col}) is out of bounds for {GRID_SIZE}x{GRID_SIZE} grid"
+            )
+        neighbors: list[tuple[int, int]] = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr = row + dr
+            nc = col + dc
+            if 0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE:
+                neighbors.append((nr, nc))
+        return neighbors
+
+    def get_rotten_overlay(self) -> list[list[int]]:
+        """Return a defensive copy of the internal rotten overlay grid.
+
+        The overlay uses 0 for healthy cells and 1-3 for countdown remaining.
+
+        Returns:
+            A deep copy of the 4x4 overlay grid.
+        """
+        if self._rotten_overlay is None:
+            self._init_overlay()
+        assert self._rotten_overlay is not None  # guaranteed by _init_overlay
+        return [row[:] for row in self._rotten_overlay]
+
+    def add_rotten(self, row: int, col: int, countdown: int) -> None:
+        """Place a rotten marker on a cell.
+
+        Args:
+            row: Row index (0-based).
+            col: Column index (0-based).
+            countdown: Remaining turns before contamination (1-3).
+
+        Raises:
+            IndexError: If row or col is out of bounds.
+            ValueError: If countdown is out of range or cell is empty.
+        """
+        if not (0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE):
+            raise IndexError(
+                f"Cell ({row}, {col}) is out of bounds for {GRID_SIZE}x{GRID_SIZE} grid"
+            )
+        if countdown < 1 or countdown > 3:
+            raise ValueError(f"Countdown must be between 1 and 3, got {countdown}")
+        if self._grid[row][col] == 0:
+            raise ValueError("Cannot add rotten to empty cell")
+        if self._rotten_overlay is None:
+            self._init_overlay()
+        assert self._rotten_overlay is not None  # guaranteed by _init_overlay
+        self._rotten_overlay[row][col] = countdown
+
+    def remove_rotten(self, row: int, col: int) -> None:
+        """Clear a rotten marker. Silent no-op if not rotten or out of bounds.
+
+        Args:
+            row: Row index (0-based).
+            col: Column index (0-based).
+        """
+        if not (0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE):
+            return
+        if self._rotten_overlay is None:
+            return
+        self._rotten_overlay[row][col] = 0
+
+    def get_state(self) -> BoardState:
+        """Return full state snapshot as a BoardState deep copy.
+
+        Returns:
+            A BoardState with copies of grid, score, moves, and overlay.
+        """
+        overlay_copy = None
+        if self._rotten_overlay is not None:
+            overlay_copy = [row[:] for row in self._rotten_overlay]
+        return BoardState(
+            grid=self.get_grid(),
+            score=self._score,
+            moves=self._moves,
+            rotten_overlay=overlay_copy,
+        )
+
+    def set_state(self, state: BoardState) -> None:
+        """Restore board from a snapshot.
+
+        Restores both value grid and rotten overlay atomically.
+
+        Args:
+            state: A BoardState snapshot to restore from.
+        """
+        self._grid = copy.deepcopy(state.grid)
+        self._score = state.score
+        self._moves = state.moves
+        if state.rotten_overlay is not None:
+            self._rotten_overlay = copy.deepcopy(state.rotten_overlay)
+        else:
+            self._rotten_overlay = None
+
+    def _init_overlay(self) -> None:
+        """Initialize internal rotten overlay as a 4x4 grid of zeros."""
+        self._rotten_overlay = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
 
 
 # --- Private algorithm functions adopted from spikes/slide_merge.py (ADR-013) ---
