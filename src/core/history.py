@@ -9,6 +9,8 @@ Public API:
     History.pop() -> Optional[tuple[BoardState, int]]
     History.can_undo() -> bool
 """
+# CHANGELOG:
+# - Sprint 1: Bounded undo/redo History stack with max_depth
 
 from __future__ import annotations
 

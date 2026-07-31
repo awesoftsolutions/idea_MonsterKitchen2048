@@ -14,6 +14,8 @@ Public API:
 Dependencies: typing -- Python stdlib only.
 Zero rendering or framework imports.
 """
+# CHANGELOG:
+# - Sprint 1: Fix has_rotten logic in is_game_over — game continues when rotten tiles present
 
 from __future__ import annotations
 

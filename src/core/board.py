@@ -68,6 +68,10 @@ Public API:
     Public algorithm function:
         slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult
 """
+# CHANGELOG:
+# - Sprint 1: Add Board.grid property for BoardProtocol compliance
+# - Sprint 1: Fix has_rotten logic in is_game_over — game continues when rotten tiles present
+# - Sprint 1: Add has_rotten awareness to is_game_over
 
 from __future__ import annotations
 

@@ -1,6 +1,8 @@
 """Regression tests for HIGH-001 — verifies spike's SlideResult
 attribute access works correctly (no TypeError from tuple unpacking).
 """
+# CHANGELOG:
+# - Sprint 1: Regression tests for HIGH-001 — spike SlideResult attribute access and BoardProtocol compliance
 
 from __future__ import annotations
 

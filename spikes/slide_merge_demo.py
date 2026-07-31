@@ -10,6 +10,7 @@ Usage:
 
 # CHANGELOG:
 # - Sprint 2: Created interactive console demo for slide/merge algorithm
+# - Sprint 1: Fix HIGH-001 tuple-unpacking bug — use result.grid/result.score attribute access
 
 import os
 import random

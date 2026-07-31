@@ -1,4 +1,6 @@
 """Shared fixtures for Monster Kitchen test suite."""
+# CHANGELOG:
+# - Sprint 1: Add 4 shared test fixtures
 
 from __future__ import annotations
 
