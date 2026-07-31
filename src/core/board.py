@@ -62,7 +62,9 @@ Public API:
         _compact_left(values: list[int]) -> list[int]
         _slide_row_left(row: list[int]) -> tuple[list[int], int]
         _transpose(grid: list[list[int]]) -> list[list[int]]
-        _slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult
+
+    Public algorithm function:
+        slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult
 """
 
 from __future__ import annotations
@@ -171,9 +173,7 @@ class Board:
                  If None, creates an unseeded random.Random() per ADR-010.
         """
         self._rng: random.Random = rng if rng is not None else random.Random()
-        self._grid: list[list[int]] = [
-            [0] * GRID_SIZE for _ in range(GRID_SIZE)
-        ]
+        self._grid: list[list[int]] = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
         self._score: int = 0
         self._moves: int = 0
 
@@ -231,7 +231,7 @@ class Board:
             SlideResult with new_grid, score_delta, and moved flag.
         """
         old_grid = [row[:] for row in self._grid]
-        result = _slide_merge(self._grid, direction)
+        result = slide_merge(self._grid, direction)
         new_grid = result.new_grid
 
         if new_grid == old_grid:
@@ -253,7 +253,7 @@ class Board:
             True if no direction produces a grid change.
         """
         for direction in Direction:
-            result = _slide_merge(self._grid, direction)
+            result = slide_merge(self._grid, direction)
             if result.new_grid != self._grid:
                 return False
         return True
@@ -368,10 +368,10 @@ def _transpose(grid: list[list[int]]) -> list[list[int]]:
     return [[grid[r][c] for r in range(num_rows)] for c in range(num_cols)]
 
 
-def _slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
+def slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
     """Slide and merge tiles in the given direction.
 
-    Adopted from spikes/slide_merge.py with production SlideResult (3 fields).
+    Public API — adopted from spikes/slide_merge.py with production SlideResult (3 fields).
 
     Args:
         grid: NxN grid of tile values (0 = empty). Not mutated.
@@ -424,4 +424,5 @@ def _slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
             total_score += row_score
         result_grid = _transpose(processed)
 
-    return SlideResult(new_grid=result_grid, score_delta=total_score, moved=False)
+    moved = result_grid != grid
+    return SlideResult(new_grid=result_grid, score_delta=total_score, moved=moved)

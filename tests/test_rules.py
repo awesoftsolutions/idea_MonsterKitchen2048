@@ -13,13 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.core.rules import (  # noqa: F401 — imported for test_import_rules_module
-    BoardProtocol,
-    Direction,
-    Rules,
-    SlideResult,
-    slide_merge,
-)
+from src.core.board import Direction, SlideResult, slide_merge  # noqa: F401 — imported for test_import_rules_module
+from src.core.rules import BoardProtocol, Rules  # noqa: F401 — imported for test_import_rules_module
 
 
 class SimpleBoard:
@@ -97,15 +92,15 @@ def almost_game_over_board() -> SimpleBoard:
 
 
 def test_import_rules_module() -> None:
-    """All expected symbols are importable from src.core.rules."""
-    # Re-import inside the test body to explicitly verify no ImportError.
-    from src.core.rules import (  # noqa: F401
-        BoardProtocol as _bp,
-        Direction as _dir,
-        Rules as _rules,
-        SlideResult as _sr,
-        slide_merge as _sm,
-    )
+    """All expected symbols are importable from their canonical modules."""
+    # Direction, SlideResult, slide_merge come from board.py (single source of truth).
+    from src.core.board import Direction as _dir  # noqa: F401
+    from src.core.board import SlideResult as _sr  # noqa: F401
+    from src.core.board import slide_merge as _sm  # noqa: F401
+
+    # BoardProtocol and Rules come from rules.py (unique to that module).
+    from src.core.rules import BoardProtocol as _bp  # noqa: F401
+    from src.core.rules import Rules as _rules  # noqa: F401
 
     assert _dir is not None
     assert _sr is not None
@@ -262,3 +257,38 @@ def test_is_game_over_has_rotten_prevents_over(
     rules = Rules()
     assert rules.is_game_over(full_no_merge_board, has_rotten=False) is True
     assert rules.is_game_over(full_no_merge_board, has_rotten=True) is False
+
+
+# ---------------------------------------------------------------------------
+# Reconciliation verification tests (TDD red phase)
+# ---------------------------------------------------------------------------
+
+
+def test_slide_merge_from_board_returns_correct_fields() -> None:
+    """Verify slide_merge returns board.py's SlideResult with new_grid/score_delta/moved."""
+    grid = [[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    result = slide_merge(grid, Direction.LEFT)
+
+    # board.py's SlideResult uses new_grid, score_delta, moved — not grid/score.
+    assert hasattr(result, "new_grid"), (
+        "SlideResult must have 'new_grid' field (not 'grid')"
+    )
+    assert hasattr(result, "score_delta"), (
+        "SlideResult must have 'score_delta' field (not 'score')"
+    )
+    assert hasattr(result, "moved"), "SlideResult must have 'moved' field"
+    assert result.new_grid[0] == [4, 0, 0, 0]
+    assert result.score_delta == 4
+    assert result.moved is True
+
+
+def test_rules_direction_is_board_direction() -> None:
+    """Verify Direction at module level is the same object as board.py's Direction."""
+    from src.core.board import Direction as BoardDirection
+
+    # The Direction imported at the top of this file (from src.core.board)
+    # must be the identical object — no duplicate class in rules.py.
+    assert Direction is BoardDirection, (
+        "Direction imported at top of file must be the same object as "
+        "Direction from src.core.board — rules.py must not define its own"
+    )

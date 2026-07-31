@@ -1,0 +1,23 @@
+"""Core package for Monster Kitchen 2048.
+
+Re-exports the public API from submodules so callers can import directly::
+
+    from src.core import Board, Direction, Rules
+
+Import order follows dependency chain: board (leaf) -> rules -> score.
+"""
+
+from src.core.board import Board, BoardState, Direction, SlideResult, slide_merge
+from src.core.rules import BoardProtocol, Rules
+from src.core.score import Score
+
+__all__ = [
+    "Board",
+    "BoardState",
+    "Direction",
+    "SlideResult",
+    "slide_merge",
+    "BoardProtocol",
+    "Rules",
+    "Score",
+]
