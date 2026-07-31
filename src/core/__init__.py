@@ -12,6 +12,7 @@ from src.core.rules import BoardProtocol, Rules
 from src.core.score import Score
 from src.core.achievements import Achievement, Achievements
 from src.core.twist import Twist, TwistEffect
+from src.core.game_session import GameSession, MoveResult
 
 __all__ = [
     "Board",
@@ -26,4 +27,6 @@ __all__ = [
     "Achievements",
     "Twist",
     "TwistEffect",
+    "GameSession",
+    "MoveResult",
 ]
