@@ -8,9 +8,12 @@ Public API:
     History.push(state: tuple[BoardState, int]) -> None
     History.pop() -> Optional[tuple[BoardState, int]]
     History.can_undo() -> bool
+    History.record(board_state: BoardState, score: int) -> None
+    History.undo() -> Optional[tuple[BoardState, int]]
 """
 # CHANGELOG:
 # - Sprint 1: Bounded undo/redo History stack with max_depth
+# - Sprint 2: Added record() and undo() convenience methods
 
 from __future__ import annotations
 
@@ -27,6 +30,9 @@ class History:
     The depth limit is configurable via max_depth: 0 means unlimited, any
     positive value enforces a hard cap — oldest snapshots are discarded when
     the limit is exceeded.
+
+    Convenience methods record() and undo() align with the IF-History
+    interface contract, delegating to push() and pop() respectively.
     """
 
     def __init__(self, max_depth: int = 0) -> None:
@@ -64,7 +70,9 @@ class History:
         if len(state) != 2:
             raise TypeError(f"state must be a 2-tuple, got {len(state)} elements")
         if not isinstance(state[0], BoardState):
-            raise TypeError(f"state[0] must be a BoardState, got {type(state[0]).__name__}")
+            raise TypeError(
+                f"state[0] must be a BoardState, got {type(state[0]).__name__}"
+            )
         if not isinstance(state[1], int):
             raise TypeError(f"state[1] must be an int, got {type(state[1]).__name__}")
 
@@ -98,3 +106,26 @@ class History:
             True if the stack has at least one snapshot, False otherwise.
         """
         return len(self._stack) > 0
+
+    def record(self, board_state: BoardState, score: int) -> None:
+        """Record a board state snapshot.
+
+        Convenience alias for push() that accepts unpacked arguments
+        matching the IF-History interface.
+
+        Args:
+            board_state: The BoardState snapshot.
+            score: The current game score.
+        """
+        self.push((board_state, score))
+
+    def undo(self) -> Optional[tuple[BoardState, int]]:
+        """Undo the most recent move by restoring the previous snapshot.
+
+        Pops and returns the most recent snapshot from the history stack.
+        Returns None if the stack is empty (no-op undo).
+
+        Returns:
+            A (BoardState, int) tuple, or None if no history exists.
+        """
+        return self.pop()
