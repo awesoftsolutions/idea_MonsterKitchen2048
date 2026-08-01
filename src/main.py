@@ -1,9 +1,10 @@
 """src/main.py — Game entry point and state machine for Monster Kitchen 2048.
 
-Defines GameState enum, GameWindow class with pygame game loop, input
-handling, and state transitions. This is the ONLY file allowed to import
-both pygame and src.core modules — the architectural bridge between the
-pure-logic core layer and the pygame rendering pipeline.
+Defines GameState enum, InputHandler, StateManager, and GameWindow class
+with pygame game loop, input handling, and state transitions. This is the
+ONLY file allowed to import both pygame and src.core modules — the
+architectural bridge between the pure-logic core layer and the pygame
+rendering pipeline.
 
 Implements: ADR-019 (GameState enum), ADR-020 (key mapping dict),
 ADR-021 (renderer API), Sprint 3 Task 2.
@@ -65,8 +66,207 @@ def _check_win(grid: list[list[int]]) -> bool:
     return False
 
 
+class InputHandler:
+    """Handles keyboard and mouse input mapping and dispatch.
+
+    Extracted from GameWindow to separate input concerns from game orchestration.
+    This class is stateless — it does not hold references to GameSession or
+    GameState. Methods receive them as parameters.
+    """
+
+    # Class attribute replacing the locally-built dict in _handle_keydown (ADR-020).
+    KEY_DIRECTION_MAP: dict[int, Direction] = {
+        pygame.K_UP: Direction.UP,
+        pygame.K_DOWN: Direction.DOWN,
+        pygame.K_LEFT: Direction.LEFT,
+        pygame.K_RIGHT: Direction.RIGHT,
+    }
+
+    @staticmethod
+    def get_direction_for_key(key: int) -> Direction | None:
+        """Return the Direction for an arrow key, or None for non-arrow keys.
+
+        Args:
+            key: Pygame key constant.
+
+        Returns:
+            The corresponding Direction for arrow keys, or None for others.
+        """
+        return InputHandler.KEY_DIRECTION_MAP.get(key)
+
+    @staticmethod
+    def handle_keydown(
+        key: int,
+        state: GameState,
+        session: GameSession,
+        animation_manager: object | None,
+    ) -> dict[str, object] | None:
+        """Dispatch a KEYDOWN event to the appropriate game action.
+
+        Args:
+            key: Pygame key constant from a KEYDOWN event.
+            state: Current GameState.
+            session: The GameSession instance.
+            animation_manager: The AnimationManager instance or None.
+
+        Returns:
+            A dict describing what happened, or None if key is not recognized
+            or not valid in the current state. Possible return dicts:
+            {"action": "move", "moved": bool, "tile_moves": list, "state_transition": GameState | None}
+            {"action": "undo"}
+            {"action": "new_game", "new_state": GameState.IDLE}
+        """
+        # Phase 1: Arrow key handling (move)
+        if key in InputHandler.KEY_DIRECTION_MAP:
+            direction = InputHandler.KEY_DIRECTION_MAP[key]
+
+            if state not in (GameState.IDLE, GameState.PLAYING):
+                return None
+
+            # Snap any running animation before processing new move (AC-18)
+            if animation_manager is not None and animation_manager.is_animating():
+                animation_manager.snap_to_end()
+
+            result = session.move(direction)
+
+            state_transition = None
+            if result.moved and state == GameState.IDLE:
+                state_transition = GameState.PLAYING
+
+            return {
+                "action": "move",
+                "moved": result.moved,
+                "tile_moves": result.tile_moves,
+                "state_transition": state_transition,
+            }
+
+        # Phase 2: Z key handling (undo)
+        if key == pygame.K_z:
+            if state == GameState.PLAYING:
+                if session.can_undo():
+                    session.undo()
+            return {"action": "undo"}
+
+        # Phase 3: Space key handling (new game)
+        if key == pygame.K_SPACE:
+            if state in (GameState.GAME_OVER, GameState.WIN):
+                session.new_game()
+                return {"action": "new_game", "new_state": GameState.IDLE}
+            return None
+
+        # Unrecognized key
+        return None
+
+    @staticmethod
+    def handle_mouse_click(
+        pos: tuple[int, int],
+        state: GameState,
+        renderer: object,
+    ) -> bool:
+        """Check if a mouse click hits the new-game button during GAME_OVER/WIN.
+
+        Args:
+            pos: Mouse click position as (x, y).
+            state: Current GameState.
+            renderer: The Renderer instance.
+
+        Returns:
+            True if new-game should be triggered, False otherwise.
+        """
+        if state not in (GameState.GAME_OVER, GameState.WIN):
+            return False
+
+        try:
+            btn_rect = renderer.get_new_game_button_rect()
+        except AttributeError:
+            return False
+
+        button = pygame.Rect(btn_rect)
+        return button.collidepoint(pos)
+
+
+class StateManager:
+    """Manages the GameState enum and handles state transitions.
+
+    Extracted from GameWindow to separate state logic from game orchestration.
+    Owns the GameState value and the win/game-over condition checks.
+    """
+
+    def __init__(self, initial_state: GameState = GameState.IDLE) -> None:
+        """Initialize with the given state.
+
+        Args:
+            initial_state: The initial GameState value (default IDLE).
+        """
+        self._state = initial_state
+
+    @property
+    def state(self) -> GameState:
+        """Return the current GameState value."""
+        return self._state
+
+    @state.setter
+    def state(self, value: GameState) -> None:
+        """Set the current GameState value."""
+        self._state = value
+
+    def transition_to(self, new_state: GameState) -> None:
+        """Transition to a new GameState unconditionally.
+
+        Args:
+            new_state: The GameState to transition to.
+        """
+        self._state = new_state
+
+    def check_win_condition(self, session: GameSession) -> None:
+        """Check for win and game-over conditions using session state.
+
+        Calls the module-level _check_win() helper on session.get_board_grid().
+        Transitions to WIN if grid has a value >= 2048.
+        Transitions to GAME_OVER if no 2048+ on board and session.game_over
+        is True. Only checks if current state is PLAYING; otherwise no-op.
+
+        Args:
+            session: The GameSession instance to check.
+        """
+        if self._state is not GameState.PLAYING:
+            return
+
+        grid = session.get_board_grid()
+        if _check_win(grid):
+            self._state = GameState.WIN
+            return
+
+        if session.game_over:
+            self._state = GameState.GAME_OVER
+
+    def is_input_allowed(self) -> bool:
+        """Return True if arrow key / Z key input is valid in current state.
+
+        Returns:
+            True for IDLE and PLAYING; False for GAME_OVER and WIN.
+        """
+        return self._state in (GameState.IDLE, GameState.PLAYING)
+
+    def is_new_game_allowed(self) -> bool:
+        """Return True if new-game action is valid in current state.
+
+        Returns:
+            True for GAME_OVER and WIN; False for IDLE and PLAYING.
+        """
+        return self._state in (GameState.GAME_OVER, GameState.WIN)
+
+    def is_undo_allowed(self) -> bool:
+        """Return True if undo action is valid in current state.
+
+        Returns:
+            True only for PLAYING.
+        """
+        return self._state is GameState.PLAYING
+
+
 class GameWindow:
-    """Main window managing pygame initialization, game loop, and state machine.
+    """Thin orchestrator delegating input and state to extracted classes.
 
     Creates a GameSession internally and runs a 60 FPS immediate-mode
     rendering loop delegating all drawing to the Renderer.
@@ -76,12 +276,12 @@ class GameWindow:
     KEY_DIRECTION_MAP: dict[int, Direction] = {}
 
     def __init__(self) -> None:
-        """Create GameSession and set initial state.
+        """Create GameSession, StateManager, and animation manager.
 
         Does NOT call pygame.init() — that happens in run().
         """
         self._session = GameSession()
-        self._state = GameState.IDLE
+        self._state_manager = StateManager(initial_state=GameState.IDLE)
         self._running = True
         self._pending_tile_moves: list[TileMove] = []
         if AnimationManager is not None:
@@ -91,6 +291,16 @@ class GameWindow:
             )
         else:
             self._animation_manager = None  # type: ignore[assignment]
+
+    @property
+    def _state(self) -> GameState:
+        """Delegation property forwarding to self._state_manager.state."""
+        return self._state_manager.state
+
+    @_state.setter
+    def _state(self, value: GameState) -> None:
+        """Delegation property forwarding to self._state_manager.state setter."""
+        self._state_manager.state = value
 
     def run(self) -> None:
         """Initialize pygame, create window, and enter the game loop.
@@ -170,78 +380,61 @@ class GameWindow:
         return False
 
     def _handle_keydown(self, key: int) -> None:
-        """Dispatch keyboard input to GameSession based on current state.
+        """Thin wrapper: delegates to InputHandler.handle_keydown().
 
         Args:
             key: Pygame key constant from a KEYDOWN event.
         """
-        key_direction_map = {
-            pygame.K_UP: Direction.UP,
-            pygame.K_DOWN: Direction.DOWN,
-            pygame.K_LEFT: Direction.LEFT,
-            pygame.K_RIGHT: Direction.RIGHT,
-        }
+        result = InputHandler.handle_keydown(
+            key=key,
+            state=self._state,
+            session=self._session,
+            animation_manager=self._animation_manager,
+        )
 
-        if key in key_direction_map:
-            direction = key_direction_map[key]
-            if self._state in (GameState.IDLE, GameState.PLAYING):
-                # Snap any running animation before processing new move (AC-2)
-                if (
-                    self._animation_manager is not None
-                    and self._animation_manager.is_animating()
-                ):
-                    self._animation_manager.snap_to_end()
-                result = self._session.move(direction)
-                if result.moved:
-                    self._pending_tile_moves.extend(result.tile_moves)
-                    if self._state == GameState.IDLE:
-                        self._state = GameState.PLAYING
-                    self._check_win_condition()
+        if result is None:
             return
 
-        if key == pygame.K_z:
-            if self._state == GameState.PLAYING:
-                if self._session.can_undo():
-                    self._session.undo()
-            return
+        action = result.get("action")
 
-        if key == pygame.K_SPACE:
-            if self._state in (GameState.GAME_OVER, GameState.WIN):
-                self._session.new_game()
-                self._state = GameState.IDLE
-            return
+        # Apply move-specific logic
+        if action == "move":
+            if result.get("moved"):
+                self._pending_tile_moves.extend(result["tile_moves"])
+                # Apply state transitions from move (IDLE -> PLAYING)
+                state_transition = result.get("state_transition")
+                if state_transition is not None:
+                    self._state = state_transition
+                # Check win/game-over via StateManager
+                self._check_win_condition()
+
+        # Apply new_game action
+        if action == "new_game":
+            if "new_state" in result:
+                self._state = result["new_state"]
 
     def _handle_mouse_click(self, pos: tuple[int, int]) -> None:
         """Detect new-game button click during GAME_OVER or WIN states.
 
+        Delegates click detection to InputHandler, then applies state
+        transitions if new-game should be triggered.
+
         Args:
             pos: Mouse click position as (x, y).
         """
-        if self._state not in (GameState.GAME_OVER, GameState.WIN):
-            return
+        should_start_new_game = InputHandler.handle_mouse_click(
+            pos=pos,
+            state=self._state,
+            renderer=self._renderer,
+        )
 
-        try:
-            btn_rect = self._renderer.get_new_game_button_rect()
-        except AttributeError:
-            return
-
-        button = pygame.Rect(btn_rect)
-        if button.collidepoint(pos):
+        if should_start_new_game:
             self._session.new_game()
             self._state = GameState.IDLE
 
     def _check_win_condition(self) -> None:
-        """Check for win and game-over conditions after a successful move."""
-        if self._state != GameState.PLAYING:
-            return
-
-        grid = self._session.get_board_grid()
-        if _check_win(grid):
-            self._state = GameState.WIN
-            return
-
-        if self._session.game_over:
-            self._state = GameState.GAME_OVER
+        """Thin wrapper: delegates to StateManager.check_win_condition()."""
+        self._state_manager.check_win_condition(self._session)
 
     def _render(self) -> bool:
         """Render one complete frame.
