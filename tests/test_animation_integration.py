@@ -1,11 +1,13 @@
-"""tests/test_animation_integration.py — TDD Red Phase integration tests.
+"""tests/test_animation_integration.py — Integration tests for AnimationManager.
 
 Purpose:
     Verifies the AnimationManager integration contract with GameWindow.
-    These tests exist to FAIL until src/render/animation_manager.py is
-    implemented (Sprint 1 Task 2). Each test imports AnimationManager
-    at function level — if the module is missing, the test fails cleanly
-    with a descriptive message rather than crashing during collection.
+    AnimationManager is implemented (Sprint 1 Task 2) and these tests
+    validate that the animation pipeline correctly intercepts valid moves,
+    produces tile-move offsets, and resolves positions after animation.
+    Each test imports AnimationManager at function level — if the module
+    is missing, the test fails cleanly with a descriptive message rather
+    than crashing during collection.
 
     When AnimationManager becomes available, these tests validate:
     - A successful move feeds tile_moves to animation manager
@@ -152,7 +154,7 @@ def _patch_pygame(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Integration tests (TDD Red Phase — expected to FAIL)
+# Integration tests — validate AnimationManager integration contract
 # ---------------------------------------------------------------------------
 
 
