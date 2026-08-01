@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from src.core.board import Direction, SlideResult, slide_merge  # noqa: F401 — re-exported for typing
+from src.core.board import Direction, GRID_SIZE, SlideResult, slide_merge  # noqa: F401 — re-exported for typing
 
 
 # ---------------------------------------------------------------------------
@@ -103,6 +103,41 @@ class Rules:
                 legal.append(direction)
         return legal
 
+    def _has_rescueable_rotten_pair(self, board: BoardProtocol) -> bool:
+        """Check if any adjacent rotten tiles share the same value.
+
+        Scans the overlay grid for adjacent cells where both are rotten
+        (overlay > 0) AND share the same tile value on the board grid.
+        Adjacent means sharing an edge (up/down/left/right), not diagonal.
+        Only checks right and down neighbors to avoid counting pairs twice.
+
+        Args:
+            board: An object satisfying BoardProtocol (must have grid and
+                get_rotten_overlay).
+
+        Returns:
+            True if at least one rescueable adjacent pair exists.
+        """
+        grid = board.grid
+        overlay = board.get_rotten_overlay()
+
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                if overlay[row][col] == 0:
+                    continue
+
+                # Check right neighbor
+                if col + 1 < GRID_SIZE:
+                    if overlay[row][col + 1] > 0 and grid[row][col] == grid[row][col + 1]:
+                        return True
+
+                # Check down neighbor
+                if row + 1 < GRID_SIZE:
+                    if overlay[row + 1][col] > 0 and grid[row][col] == grid[row + 1][col]:
+                        return True
+
+        return False
+
     def is_game_over(self, board: BoardProtocol, has_rotten: bool = False) -> bool:
         """Determine whether the game is over for the given board.
 
@@ -113,10 +148,12 @@ class Rules:
 
         When the board provides ``get_rotten_overlay()``, Phase 2 inspects
         the actual overlay grid for non-zero values (any countdown > 0).
-        If rotten tiles exist, the game is NOT over because
-        rotten-merges-rotten could still clear them.  When the board does
-        NOT provide ``get_rotten_overlay()``, the ``has_rotten`` boolean
-        parameter is used as a backward-compatible fallback.
+        If rescueable adjacent same-value rotten pairs exist, the game
+        continues because rotten-merges-rotten could clear tiles.  If no
+        rescueable pair exists, the game falls through to the legal-move
+        check.  When the board does NOT provide ``get_rotten_overlay()``,
+        the ``has_rotten`` boolean parameter is used as a backward-
+        compatible fallback (game continues if has_rotten is True).
 
         Invariant: if any direction is legal, returns False.
 
@@ -157,10 +194,17 @@ class Rules:
             # Board does NOT support overlay -- fall back to the boolean parameter.
             actual_has_rotten = has_rotten
 
-        # If rotten tiles exist, the game is NOT over.
-        # Reasoning: rotten-merges-rotten could still clear tiles on a future move.
+        # If rotten tiles exist, check whether rescue is possible.
+        # When overlay is available, only continue game if a rescueable
+        # adjacent same-value pair exists (rotten-merges-rotten can clear it).
+        # Without overlay, fall back to has_rotten boolean (backward compat).
         if actual_has_rotten:
-            return False
+            if overlay_method is not None:
+                if self._has_rescueable_rotten_pair(board):
+                    return False  # Rescue possible — game continues
+                # No rescueable pair — fall through to legal-move check
+            else:
+                return False  # has_rotten fallback — preserve existing behavior
 
         # Phase 3: Check all directions for legal moves.
         legal = self.get_legal_moves(board)

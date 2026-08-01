@@ -1,12 +1,13 @@
 """Tests for the Rules module — move legality and game-over detection.
 
-35 test cases covering:
+45 test cases covering:
     - Module imports (AC-1, AC-7)
     - Move legality for all 4 directions (AC-2)
     - Legal move enumeration (AC-3)
     - Game-over detection (AC-4)
     - Game-over invariant (AC-5)
     - has_rotten twist-awareness (AC-8)
+    - Stalemate trap detection (OQ-P17)
 """
 
 from __future__ import annotations
@@ -327,8 +328,8 @@ def test_rules_direction_is_board_direction() -> None:
 def test_rotten_tile_at_center_full_board_prevents_over() -> None:
     """Full board (no merges) with a single rotten tile at (1,1) countdown=3.
 
-    is_game_over() returns False — rotten tile means game continues
-    because rotten-merges-rotten could clear tiles. (AC-2, AC-3)
+    is_game_over() returns True -- single rotten with no adjacent same-value
+    partner is not rescueable. (OQ-P17 post-fix behavior)
     """
     rules = Rules()
     full_grid = [
@@ -340,13 +341,13 @@ def test_rotten_tile_at_center_full_board_prevents_over() -> None:
     overlay = [[0] * 4 for _ in range(4)]
     overlay[1][1] = 3
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_rotten_tile_at_corner_full_board_prevents_over() -> None:
     """Full board (no merges) with a single rotten tile at (0,0) countdown=1.
 
-    Countdown=1 is still a live rotten tile — game continues. (AC-2, AC-3)
+    Countdown=1 with no adjacent same-value partner is not rescueable. (OQ-P17 post-fix)
     """
     rules = Rules()
     full_grid = [
@@ -358,13 +359,13 @@ def test_rotten_tile_at_corner_full_board_prevents_over() -> None:
     overlay = [[0] * 4 for _ in range(4)]
     overlay[0][0] = 1
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_rotten_tile_at_edge_full_board_prevents_over() -> None:
     """Full board (no merges) with a single rotten tile at (0,2) countdown=2.
 
-    Tests edge position — game continues. (AC-2, AC-3)
+    Edge position with no adjacent same-value partner is not rescueable. (OQ-P17 post-fix)
     """
     rules = Rules()
     full_grid = [
@@ -376,7 +377,7 @@ def test_rotten_tile_at_edge_full_board_prevents_over() -> None:
     overlay = [[0] * 4 for _ in range(4)]
     overlay[0][2] = 2
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_two_rotten_tiles_full_board_prevents_over() -> None:
@@ -395,7 +396,7 @@ def test_two_rotten_tiles_full_board_prevents_over() -> None:
     overlay[0][0] = 1
     overlay[3][3] = 2
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_four_rotten_tiles_full_board_prevents_over() -> None:
@@ -416,7 +417,7 @@ def test_four_rotten_tiles_full_board_prevents_over() -> None:
     overlay[3][0] = 3
     overlay[3][3] = 3
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_rotten_tile_non_full_board_not_over() -> None:
@@ -506,7 +507,7 @@ def test_mixed_countdowns_full_board_prevents_over() -> None:
     overlay[0][1] = 2
     overlay[0][2] = 3
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_all_zero_overlay_behaves_as_no_rotten() -> None:
@@ -652,7 +653,8 @@ def test_overlay_inspection_overrides_has_rotten_false() -> None:
     overlay[0][0] = 3
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
     # has_rotten=False but overlay has non-zero -> overlay inspection wins
-    assert rules.is_game_over(board, has_rotten=False) is False
+    # Single rotten at (0,0) with no adjacent same-value partner -> game over
+    assert rules.is_game_over(board, has_rotten=False) is True
 
 
 def test_rotten_all_corner_positions() -> None:
@@ -673,7 +675,7 @@ def test_rotten_all_corner_positions() -> None:
     overlay[3][0] = 3
     overlay[3][3] = 1
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_rotten_center_position() -> None:
@@ -692,7 +694,7 @@ def test_rotten_center_position() -> None:
     overlay[1][1] = 2
     overlay[2][2] = 3
     board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
-    assert rules.is_game_over(board) is False
+    assert rules.is_game_over(board) is True
 
 
 def test_merges_possible_with_rotten_not_over() -> None:
@@ -712,3 +714,217 @@ def test_merges_possible_with_rotten_not_over() -> None:
     overlay[3][3] = 1
     board = SimpleBoardExtended(grid=merge_grid, rotten_overlay=overlay)
     assert rules.is_game_over(board) is False
+
+
+# ---------------------------------------------------------------------------
+# Stalemate trap detection tests (OQ-P17 TDD red phase)
+# 8 new tests -- all will FAIL against current is_game_over() which returns
+# False unconditionally when any rotten tile exists.
+# ---------------------------------------------------------------------------
+
+
+def test_stalemate_rescueable_same_value_pair_continues() -> None:
+    """Full board, no legal moves, two adjacent rotten with same tile value.
+
+    Rescueable pair found -- game continues. (OQ-P17 / AC-2)
+    Grid[0][0]=1 and Grid[0][1]=2 in alternating pattern, but we override
+    positions so both have value 2 (rescueable).
+    """
+    rules = Rules()
+    # Build grid where positions (0,0) and (0,1) share the same value
+    grid = [
+        [2, 2, 1, 2],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    overlay[0][1] = 2
+    board = SimpleBoardExtended(grid=grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_no_rescueable_pair_game_over() -> None:
+    """Full board, no legal moves, single rotten with no adjacent partner.
+
+    No rescueable pair -- game IS over. (OQ-P17 / AC-3)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is True
+
+
+def test_stalemate_adjacent_different_values_not_rescueable() -> None:
+    """Two adjacent rotten tiles with DIFFERENT tile values.
+
+    Not rescueable -- game IS over. (OQ-P17)
+    Grid[0][0]=1 and Grid[0][1]=2 differ in alternating pattern.
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    overlay[0][1] = 2
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is True
+
+
+def test_stalemate_diagonal_rotten_not_rescueable() -> None:
+    """Two rotten tiles at diagonal positions (0,0) and (1,1).
+
+    Diagonal is NOT adjacent -- not rescueable -- game IS over. (OQ-P17)
+    """
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    overlay[1][1] = 3
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is True
+
+
+def test_stalemate_rescueable_at_all_positions() -> None:
+    """Test rescueable pair detection at various grid positions.
+
+    Each sub-case corrupts the minimum cells needed so the paired positions
+    share the same tile value.
+    """
+
+    def _make_board_overlay(
+        pair: list[tuple[int, int]],
+        grid: list[list[int]],
+        countdowns: tuple[int, int],
+    ) -> SimpleBoardExtended:
+        """Build a SimpleBoardExtended with rotten overlay at pair positions."""
+        grid_copy = [row[:] for row in grid]
+        grid_val = grid_copy[pair[0][0]][pair[0][1]]
+        # Force second cell to match first
+        grid_copy[pair[1][0]][pair[1][1]] = grid_val
+        overlay = [[0] * 4 for _ in range(4)]
+        overlay[pair[0][0]][pair[0][1]] = countdowns[0]
+        overlay[pair[1][0]][pair[1][1]] = countdowns[1]
+        return SimpleBoardExtended(grid=grid_copy, rotten_overlay=overlay)
+
+    base_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+
+    rules = Rules()
+
+    # Case A: pair at (0,0)-(0,1) horizontal top-left
+    board = _make_board_overlay([(0, 0), (0, 1)], base_grid, (3, 2))
+    assert rules.is_game_over(board) is False
+
+    # Case B: pair at (3,2)-(3,3) horizontal bottom-right
+    board = _make_board_overlay([(3, 2), (3, 3)], base_grid, (3, 2))
+    assert rules.is_game_over(board) is False
+
+    # Case C: pair at (0,0)-(1,0) vertical top-left
+    board = _make_board_overlay([(0, 0), (1, 0)], base_grid, (2, 3))
+    assert rules.is_game_over(board) is False
+
+    # Case D: pair at (2,3)-(3,3) vertical bottom-right
+    board = _make_board_overlay([(2, 3), (3, 3)], base_grid, (1, 1))
+    assert rules.is_game_over(board) is False
+
+    # Case E: pair at (1,1)-(1,2) center horizontal
+    board = _make_board_overlay([(1, 1), (1, 2)], base_grid, (2, 2))
+    assert rules.is_game_over(board) is False
+
+
+def test_stalemate_multiple_rotten_one_rescueable_pair() -> None:
+    """Multiple rotten tiles, but only one pair is rescueable.
+
+    Single rescueable pair at (0,0)-(0,1) with same value -> game continues.
+    Other rotten at (3,3) is irrelevant. (OQ-P17)
+    """
+    rules = Rules()
+    # Build grid where (0,0) and (0,1) share value 2
+    grid = [
+        [2, 2, 1, 2],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+    ]
+    overlay = [[0] * 4 for _ in range(4)]
+    overlay[0][0] = 3
+    overlay[0][1] = 2
+    overlay[3][3] = 3
+    board = SimpleBoardExtended(grid=grid, rotten_overlay=overlay)
+    assert rules.is_game_over(board) is False
+
+
+def test_overlay_is_readonly() -> None:
+    """Verify is_game_over does not mutate the overlay grid. (OQ-P17 / AC-5)"""
+    rules = Rules()
+    full_grid = [
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+
+    # Case 1: all-zero overlay
+    overlay_zero = [[0] * 4 for _ in range(4)]
+    board = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay_zero)
+    snapshot_before = [row[:] for row in board.get_rotten_overlay()]
+    rules.is_game_over(board)
+    snapshot_after = [row[:] for row in board.get_rotten_overlay()]
+    assert snapshot_before == snapshot_after, "overlay mutated by is_game_over (all zeros)"
+
+    # Case 2: non-zero overlay
+    overlay_rotten = [[0] * 4 for _ in range(4)]
+    overlay_rotten[0][0] = 3
+    overlay_rotten[1][1] = 2
+    overlay_rotten[2][2] = 1
+    board2 = SimpleBoardExtended(grid=full_grid, rotten_overlay=overlay_rotten)
+    snapshot_before2 = [row[:] for row in board2.get_rotten_overlay()]
+    rules.is_game_over(board2)
+    snapshot_after2 = [row[:] for row in board2.get_rotten_overlay()]
+    assert snapshot_before2 == snapshot_after2, "overlay mutated by is_game_over (non-zero)"
+
+
+def test_rescueable_pair_with_various_countdowns() -> None:
+    """Rescueable pair detected regardless of countdown value (1, 2, or 3).
+
+    The rescueability check uses overlay > 0, not a specific countdown.
+    (OQ-P17)
+    """
+    rules = Rules()
+    # Build grid where (1,1) and (1,2) share the same value
+    grid = [
+        [1, 2, 1, 2],
+        [2, 1, 1, 2],
+        [1, 2, 1, 2],
+        [2, 1, 2, 1],
+    ]
+    for countdown in (1, 2, 3):
+        overlay = [[0] * 4 for _ in range(4)]
+        overlay[1][1] = countdown
+        overlay[1][2] = countdown
+        board = SimpleBoardExtended(grid=grid, rotten_overlay=overlay)
+        assert rules.is_game_over(board) is False, (
+            f"countdown={countdown}: rescueable pair should prevent game-over"
+        )

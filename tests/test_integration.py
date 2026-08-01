@@ -354,8 +354,8 @@ def test_game_over_not_triggered_with_rotten() -> None:
     # Sync twist overlay from board so game_over reads the rotten presence
     session._twist._overlay = session._board.get_rotten_overlay()
 
-    # Verify game_over is False (rotten present)
-    assert session.game_over is False
+    # Verify game_over is True (single rotten, no rescueable pair — OQ-P17)
+    assert session.game_over is True
 
     # Remove rotten overlay
     session._board.remove_rotten(0, 0)
