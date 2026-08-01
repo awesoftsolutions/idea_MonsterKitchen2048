@@ -36,6 +36,9 @@ Exports:
     MASCOT_STATES        — mascot state → sprite filename mapping (3 entries)
 """
 
+# CHANGELOG:
+# - Sprint 4-1: Add ANIMATION_DURATION_MS constant (250ms) for AnimationManager integration
+
 from __future__ import annotations
 
 from dataclasses import dataclass

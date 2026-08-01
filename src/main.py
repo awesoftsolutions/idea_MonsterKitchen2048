@@ -14,6 +14,10 @@ Usage::
     poetry run python -m src.main
 """
 
+# CHANGELOG:
+# - Sprint 4-1: AnimationManager integration — import + optional init in GameWindow, animation start/update in loop
+# - Sprint 4-1: Animation interruption handling — snap_to_end() on new arrow input before processing move
+
 from __future__ import annotations
 
 import enum

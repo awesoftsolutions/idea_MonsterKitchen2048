@@ -29,6 +29,9 @@ Constants:
     DEFAULT_DURATION_MS — default slide animation duration in milliseconds.
 """
 
+# CHANGELOG:
+# - Sprint 4-1: New pure-logic AnimationManager class — tile-slide interpolation, merge scale-pulse, snap-to-end
+
 from __future__ import annotations
 
 from dataclasses import dataclass
