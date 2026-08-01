@@ -8,7 +8,8 @@ Public API:
 
 Internal types (not exported):
     AchievementDefinition: Definition with callable condition for each achievement.
-    _ACHIEVEMENT_DEFINITIONS: Module-level list of 8 condition-callable definitions.
+    _ACHIEVEMENT_DEFINITIONS: Module-level list of 12 achievement definitions
+    (8 via condition-callables, 4 via inline checks in evaluate()).
     _get_max_tile(): Helper to extract maximum tile value from grid.
     _count_empty(): Helper to count zero-value cells in grid.
 """
