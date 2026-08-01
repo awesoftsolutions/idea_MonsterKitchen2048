@@ -48,6 +48,7 @@ from dataclasses import dataclass
 GRID_SIZE: int = 4
 BOARD_MARGIN: int = 25
 TITLE_AREA_HEIGHT: int = 113
+ANIMATION_DURATION_MS: int = 250
 
 
 # ---------------------------------------------------------------------------

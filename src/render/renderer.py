@@ -67,7 +67,12 @@ class Renderer:
 
             self._font = pygame.font.SysFont("arial", 36, bold=True)
 
-    def render(self, surface: Any, session: Any) -> None:
+    def render(
+        self,
+        surface: Any,
+        session: Any,
+        active_moves: dict[tuple[int, int], tuple[float, float]] | None = None,
+    ) -> None:
         """Render the complete game frame onto *surface*.
 
         Reads all state from *session* and draws sprites in strict layer
@@ -77,6 +82,9 @@ class Renderer:
         Args:
             surface: The target pygame.Surface (or mock) to draw onto.
             session: The current GameSession (or mock) providing game state.
+            active_moves: Optional mapping of (row, col) to (offset_x, offset_y)
+                pixel offsets for animated tiles. When provided, animated tiles
+                are blitted at their offset positions. None means no animation.
         """
         import pygame
 
@@ -110,7 +118,12 @@ class Renderer:
                     surface.blit(empty_sprite, rect)
                 else:
                     tile_sprite = assets.get_tile_sprite(tile_value)
-                    surface.blit(tile_sprite, rect)
+                    # Apply animation pixel offsets when active_moves provided (AC-12)
+                    blit_rect = rect
+                    if active_moves is not None and (row_idx, col_idx) in active_moves:
+                        offset_x, offset_y = active_moves[(row_idx, col_idx)]
+                        blit_rect = rect.move(int(offset_x), int(offset_y))
+                    surface.blit(tile_sprite, blit_rect)
 
         # --- Layer 4: Rotten overlay ---
         for row_idx in range(4):

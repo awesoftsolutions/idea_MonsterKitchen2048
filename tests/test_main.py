@@ -142,8 +142,8 @@ def _make_mock_session(
     mock.can_undo.return_value = can_undo
     # game_over is a @property — configure it via type(mock)
     type(mock).game_over = PropertyMock(return_value=game_over)
-    # move() returns a mock MoveResult with moved=True by default
-    mock.move.return_value = MagicMock(moved=True)
+    # move() returns a mock MoveResult with moved=True and empty tile_moves
+    mock.move.return_value = MagicMock(moved=True, tile_moves=[])
     mock.undo.return_value = True
     return mock
 
@@ -458,7 +458,9 @@ def test_full_render_cycle_no_exception(
     monkeypatch.setattr(pygame.display, "flip", _mock_flip)
 
     window._render()  # type: ignore[union-attr]
-    mock_renderer.render.assert_called_once_with(mock_screen, session)
+    mock_renderer.render.assert_called_once_with(
+        mock_screen, session, active_moves=None
+    )
     assert flip_called["v"], "pygame.display.flip() was not called"
 
 
@@ -484,6 +486,7 @@ def test_no_pygame_imports_in_core() -> None:
         assert "from pygame" not in content, (
             f"{fname} contains 'from pygame' — pygame must not be imported in src/core/"
         )
+
 
 # ===========================================================================
 # TC-regression-2: State guard tests (HIGH-severity coverage gaps from code review)

@@ -21,11 +21,16 @@ import traceback
 
 import pygame
 
-from src.core.board import Direction
+from src.core.board import Direction, TileMove
 from src.core.game_session import GameSession
 from src.render.asset_loader import AssetLoader
-from src.render.layout import BoardLayout
+from src.render.layout import ANIMATION_DURATION_MS, BoardLayout
 from src.render.renderer import Renderer
+
+try:
+    from src.render.animation_manager import AnimationManager
+except ImportError:
+    AnimationManager = None  # type: ignore[assignment,misc]
 
 
 class GameState(enum.Enum):
@@ -78,6 +83,14 @@ class GameWindow:
         self._session = GameSession()
         self._state = GameState.IDLE
         self._running = True
+        self._pending_tile_moves: list[TileMove] = []
+        if AnimationManager is not None:
+            self._animation_manager = AnimationManager(
+                duration_ms=ANIMATION_DURATION_MS,
+                cell_size=162,
+            )
+        else:
+            self._animation_manager = None  # type: ignore[assignment]
 
     def run(self) -> None:
         """Initialize pygame, create window, and enter the game loop.
@@ -91,9 +104,7 @@ class GameWindow:
             raise SystemExit(f"Failed to initialize pygame: {e}") from e
 
         try:
-            self._screen = pygame.display.set_mode(
-                (700, 800), flags=pygame.NOFRAME
-            )
+            self._screen = pygame.display.set_mode((700, 800), flags=pygame.NOFRAME)
             pygame.display.set_caption("Favur 2048")
         except Exception as e:
             pygame.quit()
@@ -107,16 +118,31 @@ class GameWindow:
         self._renderer = Renderer(asset_loader, layout)
         self._assets = asset_loader
 
+        if AnimationManager is not None:
+            self._animation_manager = AnimationManager(
+                duration_ms=ANIMATION_DURATION_MS,
+                cell_size=layout.cell_size,
+            )
+
         while self._running:
             try:
                 if self._process_events():
                     self._running = False
                     continue
 
+                # Feed pending tile moves to animation manager before render
+                if self._pending_tile_moves and self._animation_manager is not None:
+                    self._animation_manager.start_animation(self._pending_tile_moves)
+                    self._pending_tile_moves.clear()
+
+                dt = self._clock.tick(60) / 1000.0
+
+                # Advance animation clock
+                if self._animation_manager is not None:
+                    self._animation_manager.update(dt)
+
                 if not self._render():
                     break
-
-                self._clock.tick(60)
             except pygame.error:
                 traceback.print_exc()
                 continue
@@ -159,8 +185,15 @@ class GameWindow:
         if key in key_direction_map:
             direction = key_direction_map[key]
             if self._state in (GameState.IDLE, GameState.PLAYING):
+                # Snap any running animation before processing new move (AC-2)
+                if (
+                    self._animation_manager is not None
+                    and self._animation_manager.is_animating()
+                ):
+                    self._animation_manager.snap_to_end()
                 result = self._session.move(direction)
                 if result.moved:
+                    self._pending_tile_moves.extend(result.tile_moves)
                     if self._state == GameState.IDLE:
                         self._state = GameState.PLAYING
                     self._check_win_condition()
@@ -218,7 +251,23 @@ class GameWindow:
         """
         try:
             self._screen.fill((0, 0, 0))
-            self._renderer.render(self._screen, self._session)
+
+            # Build active_moves dict from animation manager offsets
+            active_moves: dict[tuple[int, int], tuple[float, float]] | None = None
+            if (
+                self._animation_manager is not None
+                and self._animation_manager.is_animating()
+            ):
+                active_moves = {}
+                for row in range(4):
+                    for col in range(4):
+                        offset = self._animation_manager.get_pixel_offset(row, col)
+                        if offset != (0.0, 0.0):
+                            active_moves[(row, col)] = offset
+
+            self._renderer.render(
+                self._screen, self._session, active_moves=active_moves
+            )
 
             if self._state == GameState.GAME_OVER:
                 try:
