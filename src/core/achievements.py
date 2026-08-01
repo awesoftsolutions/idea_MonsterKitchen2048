@@ -13,11 +13,13 @@ Internal types (not exported):
     _get_max_tile(): Helper to extract maximum tile value from grid.
     _count_empty(): Helper to count zero-value cells in grid.
 """
+# CHANGELOG:
+# - Sprint 3 Review: Type-annotation strictness fixes (typed dict generics, added Any import)
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any, Callable
 
 from src.core.board import BoardState
 
@@ -319,7 +321,7 @@ class Achievements:
 
         return newly_unlocked
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize unlocked set and tracking state to JSON-compatible dict.
 
         Returns:
@@ -335,7 +337,7 @@ class Achievements:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> Achievements:
+    def from_dict(cls, data: dict[str, Any]) -> Achievements:
         """Reconstruct Achievements from serialized dict.
 
         Args:

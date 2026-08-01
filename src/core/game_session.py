@@ -16,13 +16,14 @@ Zero rendering dependencies.
 """
 # CHANGELOG:
 # - Sprint 2: Created GameSession orchestrator with 6-module coordination (Board, Rules, Score, History, Achievements, Twist)
+# - Sprint 3 Review: Type-annotation strictness fixes (typed dict generics, added Any import)
 
 from __future__ import annotations
 
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from src.core.achievements import Achievement, Achievements
 from src.core.board import Board, BoardState, Direction, GRID_SIZE
@@ -227,7 +228,7 @@ class GameSession:
         """Return True if undo history is available."""
         return self._history.can_undo()
 
-    def save(self) -> dict:
+    def save(self) -> dict[str, Any]:
         """Serialize full game state to a JSON-compatible dict.
 
         Returns:
@@ -238,7 +239,7 @@ class GameSession:
         current_score = self._score.get_score()
 
         # Serialize history stack (reaches into History internals)
-        history_data: list[dict] = []
+        history_data: list[dict[str, Any]] = []
         for state, score in self._history._stack:
             history_data.append({
                 "board_state": state.to_dict(),
@@ -258,7 +259,7 @@ class GameSession:
     @classmethod
     def load(
         cls,
-        data: dict,
+        data: dict[str, Any],
         rng: Optional[random.Random] = None,
         high_score_path: Optional[str] = None,
     ) -> GameSession:

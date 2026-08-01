@@ -23,13 +23,15 @@ Usage::
     renderer = Renderer(AssetLoader("assets"), BoardLayout())
     renderer.render(screen_surface, game_session)
 """
+# CHANGELOG:
+# - Sprint 3 Review: Type-annotation strictness fixes and contract comment
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    pass
+    import pygame.font
 
 
 class Renderer:
@@ -52,7 +54,7 @@ class Renderer:
         """
         self._assets = asset_loader
         self._layout = layout
-        self._font = None
+        self._font: Optional["pygame.font.Font"] = None
 
     def _ensure_font(self) -> None:
         """Lazily initialize the HUD font on first render call.
@@ -125,6 +127,7 @@ class Renderer:
 
         # --- Layer 5: HUD ---
         self._ensure_font()
+        assert self._font is not None  # guaranteed by _ensure_font
 
         # Title logo
         title = assets.get_ui_sprite("title_logo")

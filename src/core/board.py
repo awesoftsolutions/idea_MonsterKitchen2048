@@ -74,6 +74,7 @@ Public API:
 # - Sprint 1: Fix has_rotten logic in is_game_over — game continues when rotten tiles present
 # - Sprint 1: Add has_rotten awareness to is_game_over
 # - Sprint 2: Add Board overlay API (get_rotten_overlay, add_rotten, remove_rotten, BoardState.rotten_overlay)
+# - Sprint 3 Review: Type-annotation strictness fixes (typed dict generics, renamed local variable)
 
 from __future__ import annotations
 
@@ -81,6 +82,7 @@ import copy
 import enum
 import random
 from dataclasses import dataclass
+from typing import Any
 
 
 # ADR-011: Grid size is hardcoded to 4×4 per operator directive DR-004.
@@ -129,14 +131,14 @@ class BoardState:
     moves: int = 0
     rotten_overlay: list[list[int]] | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a JSON-compatible dict.
 
         Returns:
             A dict with keys 'grid', 'score', 'moves', and optionally
             'rotten_overlay' when twist state is active.
         """
-        result: dict = {
+        result: dict[str, Any] = {
             "grid": copy.deepcopy(self.grid),
             "score": self.score,
             "moves": self.moves,
@@ -146,7 +148,7 @@ class BoardState:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict) -> BoardState:
+    def from_dict(cls, data: dict[str, Any]) -> BoardState:
         """Reconstruct a BoardState from a serialized dict.
 
         Args:
@@ -293,7 +295,7 @@ class Board:
         self._moves = 0
         self._rotten_overlay = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the Board to a JSON-compatible dict.
 
         Returns:
@@ -311,7 +313,7 @@ class Board:
         return state.to_dict()
 
     @classmethod
-    def from_dict(cls, data: dict) -> Board:
+    def from_dict(cls, data: dict[str, Any]) -> Board:
         """Reconstruct a Board from a serialized dict.
 
         Args:
@@ -615,13 +617,13 @@ def slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
 
     elif direction == Direction.DOWN:
         transposed = _transpose(working_grid)
-        processed: list[list[int]] = []
+        processed_down: list[list[int]] = []
         for col_as_row in transposed:
             reversed_row = col_as_row[::-1]
             merged_row, row_score = _slide_row_left(reversed_row)
-            processed.append(merged_row[::-1])
+            processed_down.append(merged_row[::-1])
             total_score += row_score
-        result_grid = _transpose(processed)
+        result_grid = _transpose(processed_down)
 
     moved = result_grid != grid
     return SlideResult(new_grid=result_grid, score_delta=total_score, moved=moved)
