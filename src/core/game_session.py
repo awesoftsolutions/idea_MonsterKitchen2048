@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from src.core.achievements import Achievement, Achievements
-from src.core.board import Board, BoardState, Direction, GRID_SIZE
+from src.core.board import Board, BoardState, Direction, GRID_SIZE, TileMove
 from src.core.history import History
 from src.core.rules import Rules
 from src.core.score import Score
@@ -42,12 +42,14 @@ class MoveResult:
         score_delta: Points earned from merges this move (0 if not moved).
         new_achievements: Achievements unlocked this move.
         twist_effect: What the twist system did this move.
+        tile_moves: Per-tile movement records for animation (empty if no move).
     """
 
     moved: bool = False
     score_delta: int = 0
     new_achievements: list[Achievement] = field(default_factory=list)
     twist_effect: TwistEffect = field(default_factory=TwistEffect)
+    tile_moves: list[TileMove] = field(default_factory=list)
 
 
 class GameSession:
@@ -92,7 +94,7 @@ class GameSession:
             direction: One of Direction.UP, DOWN, LEFT, RIGHT.
 
         Returns:
-            A MoveResult with moved, score_delta, new_achievements, twist_effect.
+            A MoveResult with moved, score_delta, new_achievements, twist_effect, and tile_moves.
         """
         # STEP 1: Capture pre-move state BEFORE any mutation
         pre_move_board_state = self._board.get_state()
@@ -108,6 +110,7 @@ class GameSession:
                 score_delta=0,
                 new_achievements=[],
                 twist_effect=TwistEffect(),
+                tile_moves=slide_result.tile_moves,
             )
 
         # STEP 4: Record history snapshot (pre-move state + pre-move score)
@@ -150,6 +153,7 @@ class GameSession:
             score_delta=slide_result.score_delta,
             new_achievements=new_achievements,
             twist_effect=twist_effect,
+            tile_moves=slide_result.tile_moves,
         )
 
     def undo(self) -> bool:
@@ -241,10 +245,12 @@ class GameSession:
         # Serialize history stack (reaches into History internals)
         history_data: list[dict[str, Any]] = []
         for state, score in self._history._stack:
-            history_data.append({
-                "board_state": state.to_dict(),
-                "score": score,
-            })
+            history_data.append(
+                {
+                    "board_state": state.to_dict(),
+                    "score": score,
+                }
+            )
 
         return {
             "board": board_state.to_dict(),

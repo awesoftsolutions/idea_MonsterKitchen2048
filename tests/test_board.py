@@ -24,11 +24,11 @@ Public API:
             move count for test setup. Uses private _grid, _score, _moves
             attributes (acceptable in test code).
 
-    Test functions (21 standalone):
+    Test functions (28 standalone):
         test_direction_enum_members()          — Direction has 4 string members.
         test_slide_result_dataclass()          — SlideResult fields, types, defaults.
         test_boardstate_dataclass()            — BoardState fields and types.
-        test_board_initial_state()             — Board() creates 4x4 zeros, score 0.
+        test_board_initial_state()             — Board() creates 4×4 zeros, score 0.
         test_board_get_set_cell()              — get_cell / set_cell roundtrip.
         test_board_out_of_bounds_raises()      — IndexError for invalid row/col.
         test_board_slide_left_merges()         — LEFT merges [2,2,0,0] -> [4,0,0,0].
@@ -46,6 +46,13 @@ Public API:
         test_board_rng_injection()             — Board accepts rng parameter.
         test_boardstate_to_dict_roundtrip()    — BoardState to_dict/from_dict.
         test_board_to_dict_from_dict_roundtrip() — Board to_dict/from_dict.
+        test_tile_moves_left_slide()          — LEFT slide produces correct TileMove coords.
+        test_tile_moves_right_slide()         — RIGHT slide maps reversed-column coords.
+        test_tile_moves_up_slide()            — UP slide maps transposed coords.
+        test_tile_moves_down_slide()          — DOWN slide maps reversed-transposed coords.
+        test_tile_moves_merge_detection()     — merged=True + value=sum on merge.
+        test_tile_moves_no_move()             — Illegal move returns empty tile_moves.
+        test_tile_moves_backward_compatibility() — MoveResult/SlideResult tile_moves default.
 """
 
 from __future__ import annotations
@@ -54,7 +61,7 @@ import random
 
 import pytest
 
-from src.core.board import Board, BoardState, Direction, SlideResult
+from src.core.board import Board, BoardState, Direction, SlideResult, slide_merge
 
 
 # ---------------------------------------------------------------------------
@@ -447,3 +454,204 @@ def test_board_to_dict_from_dict_roundtrip() -> None:
     assert restored.get_grid() == board.get_grid()
     assert restored._score == board._score
     assert restored._moves == board._moves
+
+# ---------------------------------------------------------------------------
+# TileMove Tests (TDD Red Phase — TileMove does NOT exist yet, tests will FAIL)
+# ---------------------------------------------------------------------------
+
+
+def test_tile_moves_left_slide() -> None:
+  """AC-1: LEFT slide produces correct TileMove coordinate mapping."""
+  from src.core.board import TileMove
+
+  grid = [
+    [0, 0, 2, 2],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ]
+  result = slide_merge(grid, Direction.LEFT)
+  assert result.tile_moves is not None
+  assert len(result.tile_moves) == 2
+
+  assert all(isinstance(m, TileMove) for m in result.tile_moves)
+  move_by_src = {(m.source_row, m.source_col): m for m in result.tile_moves}
+  m1 = move_by_src[(0, 2)]
+  assert m1.dest_row == 0
+  assert m1.dest_col == 0
+  assert m1.value == 2
+  assert m1.merged is False
+
+  m2 = move_by_src[(0, 3)]
+  assert m2.dest_row == 0
+  assert m2.dest_col == 0
+  assert m2.value == 4
+  assert m2.merged is True
+
+
+def test_tile_moves_right_slide() -> None:
+  """AC-7: RIGHT slide maps reversed-column coordinates correctly."""
+  from src.core.board import TileMove
+
+  grid = [
+    [2, 4, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ]
+  result = slide_merge(grid, Direction.RIGHT)
+  assert len(result.tile_moves) == 2
+
+  assert all(isinstance(m, TileMove) for m in result.tile_moves)
+  move_by_src = {(m.source_row, m.source_col): m for m in result.tile_moves}
+  m1 = move_by_src[(0, 0)]
+  assert m1.dest_row == 0
+  assert m1.dest_col == 2
+  assert m1.value == 2
+  assert m1.merged is False
+
+  m2 = move_by_src[(0, 1)]
+  assert m2.dest_row == 0
+  assert m2.dest_col == 3
+  assert m2.value == 4
+  assert m2.merged is False
+
+
+def test_tile_moves_up_slide() -> None:
+  """AC-5: UP slide maps transposed grid coordinates correctly."""
+  from src.core.board import TileMove
+
+  grid = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [2, 0, 0, 0],
+    [4, 0, 0, 0],
+  ]
+  result = slide_merge(grid, Direction.UP)
+  assert len(result.tile_moves) == 2
+
+  assert all(isinstance(m, TileMove) for m in result.tile_moves)
+  move_by_src = {(m.source_row, m.source_col): m for m in result.tile_moves}
+  m1 = move_by_src[(2, 0)]
+  assert m1.dest_row == 0
+  assert m1.dest_col == 0
+  assert m1.value == 2
+  assert m1.merged is False
+
+  m2 = move_by_src[(3, 0)]
+  assert m2.dest_row == 1
+  assert m2.dest_col == 0
+  assert m2.value == 4
+  assert m2.merged is False
+
+
+def test_tile_moves_down_slide() -> None:
+  """AC-8: DOWN slide maps reversed-transposed coordinates correctly."""
+  from src.core.board import TileMove
+
+  grid = [
+    [2, 0, 0, 0],
+    [4, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ]
+  result = slide_merge(grid, Direction.DOWN)
+  assert len(result.tile_moves) == 2
+
+  assert all(isinstance(m, TileMove) for m in result.tile_moves)
+  move_by_src = {(m.source_row, m.source_col): m for m in result.tile_moves}
+  m1 = move_by_src[(0, 0)]
+  assert m1.dest_row == 2
+  assert m1.dest_col == 0
+  assert m1.value == 2
+  assert m1.merged is False
+
+  m2 = move_by_src[(1, 0)]
+  assert m2.dest_row == 3
+  assert m2.dest_col == 0
+  assert m2.value == 4
+  assert m2.merged is False
+
+
+def test_tile_moves_merge_detection() -> None:
+  """AC-2: merged=True is set on the destination tile of a merge; value equals sum."""
+  from src.core.board import TileMove
+
+  # Simple merge: [0,0,2,2] LEFT -> [4,0,0,0]
+  grid = [
+    [0, 0, 2, 2],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ]
+  result = slide_merge(grid, Direction.LEFT)
+  assert len(result.tile_moves) == 2
+  assert all(isinstance(m, TileMove) for m in result.tile_moves)
+
+  merged_flags = [m.merged for m in result.tile_moves]
+  assert merged_flags.count(False) == 1, "Exactly one non-merged tile expected"
+  assert merged_flags.count(True) == 1, "Exactly one merged tile expected"
+
+  non_merged = next(m for m in result.tile_moves if not m.merged)
+  merged = next(m for m in result.tile_moves if m.merged)
+  assert non_merged.value == 2
+  assert merged.value == 4  # sum: 2 + 2
+  assert (non_merged.dest_row, non_merged.dest_col) == (
+    merged.dest_row, merged.dest_col
+  ), "Both tiles merge into the same destination"
+
+  # Compound merge: [2,2,4,4] LEFT -> [4,8,0,0], score_delta = 12
+  grid2 = [
+    [2, 2, 4, 4],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ]
+  result2 = slide_merge(grid2, Direction.LEFT)
+  assert len(result2.tile_moves) == 4
+  assert result2.score_delta == 12
+
+  merged_values = sorted(
+    m.value for m in result2.tile_moves if m.merged
+  )
+  assert merged_values == [4, 8], (
+    f"Expected merged values [4, 8], got {merged_values}"
+  )
+
+
+def test_tile_moves_no_move() -> None:
+  """AC-3: Illegal move (no grid change) returns empty tile_moves."""
+  grid = [
+    [0, 0, 0, 2],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ]
+  result = slide_merge(grid, Direction.RIGHT)
+  assert result.moved is False
+  assert result.tile_moves == []
+
+  # Also verify via Board.move() short-circuit path
+  board = _make_board_from_grid([
+    [2, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ])
+  result2 = board.move(Direction.LEFT)
+  assert result2.moved is False
+  assert result2.tile_moves == []
+
+
+def test_tile_moves_backward_compatibility() -> None:
+  """AC-4: Constructing SlideResult without tile_moves defaults to empty list."""
+  grid = [[0] * 4 for _ in range(4)]
+  result = SlideResult(new_grid=grid, score_delta=0, moved=False)
+  assert result.tile_moves == []
+  assert isinstance(result.tile_moves, list)
+  assert len(result.tile_moves) == 0
+
+  # Also move=True path
+  result2 = SlideResult(new_grid=grid, score_delta=4, moved=True)
+  assert result2.tile_moves == []
+  assert len(result2.tile_moves) == 0

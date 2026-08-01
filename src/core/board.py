@@ -30,6 +30,16 @@ Public API:
         Enumeration of slide directions with string values.
         Members: UP, DOWN, LEFT, RIGHT.
 
+    TileMove (dataclass):
+        Movement record for a single tile during a slide-and-merge operation.
+        Fields:
+            source_row: int  — row index before the move.
+            source_col: int  — column index before the move.
+            dest_row: int    — row index after the move.
+            dest_col: int    — column index after the move.
+            value: int       — pre-merge value (source) or sum (merged destination).
+            merged: bool     — True for merged destination; False for simple slides.
+
     SlideResult (dataclass):
         Result of a slide-and-merge operation.
         Fields:
@@ -81,7 +91,7 @@ from __future__ import annotations
 import copy
 import enum
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -102,6 +112,27 @@ class Direction(enum.Enum):
 
 
 @dataclass
+class TileMove:
+    """Movement record for a single tile during a slide-and-merge operation.
+
+    Attributes:
+        source_row: Row index (0-based) of the tile before the move.
+        source_col: Column index (0-based) of the tile before the move.
+        dest_row: Row index (0-based) of the tile's destination after the move.
+        dest_col: Column index (0-based) of the tile's destination after the move.
+        value: Tile value (pre-merge value for the non-merged source; sum for the merged destination).
+        merged: True only for the destination tile of a merge; False for simple slides and the non-merged source of a merge.
+    """
+
+    source_row: int
+    source_col: int
+    dest_row: int
+    dest_col: int
+    value: int
+    merged: bool
+
+
+@dataclass
 class SlideResult:
     """Result of a slide-and-merge operation.
 
@@ -109,11 +140,13 @@ class SlideResult:
         new_grid: The 4×4 grid state after slide-and-merge.
         score_delta: Sum of merged tile values (0 if no merges).
         moved: True if any tile changed position or merged.
+        tile_moves: Per-tile movement records for animation (empty if no move).
     """
 
     new_grid: list[list[int]]
     score_delta: int = 0
     moved: bool = False
+    tile_moves: list[TileMove] = field(default_factory=list)
 
 
 @dataclass
@@ -258,14 +291,16 @@ class Board:
             direction: One of Direction.UP, DOWN, LEFT, RIGHT.
 
         Returns:
-            SlideResult with new_grid, score_delta, and moved flag.
+            SlideResult with new_grid, score_delta, moved, and tile_moves.
         """
         old_grid = [row[:] for row in self._grid]
         result = slide_merge(self._grid, direction)
         new_grid = result.new_grid
 
         if new_grid == old_grid:
-            return SlideResult(new_grid=new_grid, score_delta=0, moved=False)
+            return SlideResult(
+                new_grid=new_grid, score_delta=0, moved=False, tile_moves=[]
+            )
 
         self._grid = new_grid
         self._score += result.score_delta
@@ -274,6 +309,7 @@ class Board:
             new_grid=new_grid,
             score_delta=result.score_delta,
             moved=True,
+            tile_moves=result.tile_moves,
         )
 
     def is_game_over(self) -> bool:
@@ -518,23 +554,35 @@ def _compact_left(items: list[int]) -> list[int]:
     return slid
 
 
-def _slide_row_left(row: list[int]) -> tuple[list[int], int]:
-    """Slide a single row leftward with merging.
+def _slide_row_left(
+    row: list[int],
+) -> tuple[list[int], int, list[tuple[int, int, int, bool]]]:
+    """Slide a single row leftward with merging and tile journey tracking.
 
     Three-step pattern: compact, merge adjacent equal pairs left-to-right (each tile
-    merges at most once), compact again.
+    merges at most once), compact again. Tracks each non-zero tile's journey from its
+    original position to its final position through the slide-and-merge cycle.
 
     Args:
         row: A list of tile values (0 = empty).
 
     Returns:
-        (merged_row, row_score) — the processed row and the score earned.
+        (merged_row, row_score, tile_journeys) — the processed row, the score earned,
+        and a list of (source_col, dest_col, value, merged) tuples for each tile that moved.
     """
     length = len(row)
+
+    # Build source_positions: parallel list of original column indices for non-zero tiles
+    source_positions: list[int] = []
+    for i in range(length):
+        if row[i] != 0:
+            source_positions.append(i)
+
     slid = _compact_left(row)
 
     row_score = 0
-    merged: list[int] = [0] * length
+    tile_journeys: list[tuple[int, int, int, bool]] = []
+    merged_list: list[int] = [0] * length
     source_index = 0
     dest_index = 0
     while source_index < length:
@@ -543,16 +591,38 @@ def _slide_row_left(row: list[int]) -> tuple[list[int], int]:
             and slid[source_index] != 0
             and slid[source_index] == slid[source_index + 1]
         ):
-            merged[dest_index] = slid[source_index] * 2
-            row_score += merged[dest_index]
+            # Merge case: two tiles collide into one destination
+            merged_value = slid[source_index] * 2
+            merged_list[dest_index] = merged_value
+            row_score += merged_value
+
+            # Journey for first source tile (non-merged)
+            tile_journeys.append(
+                (source_positions[source_index], dest_index, slid[source_index], False)
+            )
+            # Journey for second source tile (merged destination)
+            tile_journeys.append(
+                (source_positions[source_index + 1], dest_index, merged_value, True)
+            )
+
             source_index += 2
         else:
-            merged[dest_index] = slid[source_index]
+            # Simple slide case
+            merged_list[dest_index] = slid[source_index]
+            if slid[source_index] != 0:
+                tile_journeys.append(
+                    (
+                        source_positions[source_index],
+                        dest_index,
+                        slid[source_index],
+                        False,
+                    )
+                )
             source_index += 1
         dest_index += 1
 
-    final = _compact_left(merged)
-    return final, row_score
+    final = _compact_left(merged_list)
+    return final, row_score, tile_journeys
 
 
 def _transpose(grid: list[list[int]]) -> list[list[int]]:
@@ -572,14 +642,14 @@ def _transpose(grid: list[list[int]]) -> list[list[int]]:
 def slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
     """Slide and merge tiles in the given direction.
 
-    Public API — adopted from spikes/slide_merge.py with production SlideResult (3 fields).
+    Public API — adopted from spikes/slide_merge.py with production SlideResult including tile_moves.
 
     Args:
         grid: NxN grid of tile values (0 = empty). Not mutated.
         direction: One of Direction.UP, DOWN, LEFT, RIGHT.
 
     Returns:
-        SlideResult with new_grid, score_delta, and moved computed by caller.
+        SlideResult with new_grid, score_delta, moved, and tile_moves.
 
     Raises:
         ValueError: If grid is empty or not square.
@@ -592,38 +662,88 @@ def slide_merge(grid: list[list[int]], direction: Direction) -> SlideResult:
     working_grid = copy.deepcopy(grid)
     total_score = 0
     result_grid: list[list[int]] = []
+    all_tile_moves: list[TileMove] = []
 
     if direction == Direction.LEFT:
-        for row in working_grid:
-            merged_row, row_score = _slide_row_left(row)
+        for r, row in enumerate(working_grid):
+            merged_row, row_score, journeys = _slide_row_left(row)
             result_grid.append(merged_row)
             total_score += row_score
+            for src_col, dest_col, value, merged in journeys:
+                all_tile_moves.append(
+                    TileMove(
+                        source_row=r,
+                        source_col=src_col,
+                        dest_row=r,
+                        dest_col=dest_col,
+                        value=value,
+                        merged=merged,
+                    )
+                )
 
     elif direction == Direction.RIGHT:
-        for row in working_grid:
+        for r, row in enumerate(working_grid):
             reversed_row = row[::-1]
-            merged_row, row_score = _slide_row_left(reversed_row)
-            result_grid.append(merged_row[::-1])
+            merged_row_rev, row_score, journeys = _slide_row_left(reversed_row)
+            result_grid.append(merged_row_rev[::-1])
             total_score += row_score
+            for src_col_rev, dest_col_rev, value, merged in journeys:
+                all_tile_moves.append(
+                    TileMove(
+                        source_row=r,
+                        source_col=GRID_SIZE - 1 - src_col_rev,
+                        dest_row=r,
+                        dest_col=GRID_SIZE - 1 - dest_col_rev,
+                        value=value,
+                        merged=merged,
+                    )
+                )
 
     elif direction == Direction.UP:
         transposed = _transpose(working_grid)
         processed: list[list[int]] = []
-        for col_as_row in transposed:
-            merged_row, row_score = _slide_row_left(col_as_row)
-            processed.append(merged_row)
-            total_score += row_score
+        for c, col_as_row in enumerate(transposed):
+            merged_col, col_score, journeys = _slide_row_left(col_as_row)
+            processed.append(merged_col)
+            total_score += col_score
+            for src_idx, dest_idx, value, merged in journeys:
+                all_tile_moves.append(
+                    TileMove(
+                        source_row=src_idx,
+                        source_col=c,
+                        dest_row=dest_idx,
+                        dest_col=c,
+                        value=value,
+                        merged=merged,
+                    )
+                )
         result_grid = _transpose(processed)
 
     elif direction == Direction.DOWN:
         transposed = _transpose(working_grid)
         processed_down: list[list[int]] = []
-        for col_as_row in transposed:
+        for c, col_as_row in enumerate(transposed):
             reversed_row = col_as_row[::-1]
-            merged_row, row_score = _slide_row_left(reversed_row)
-            processed_down.append(merged_row[::-1])
-            total_score += row_score
+            merged_col_rev, col_score, journeys = _slide_row_left(reversed_row)
+            processed_down.append(merged_col_rev[::-1])
+            total_score += col_score
+            for src_idx_rev, dest_idx_rev, value, merged in journeys:
+                all_tile_moves.append(
+                    TileMove(
+                        source_row=GRID_SIZE - 1 - src_idx_rev,
+                        source_col=c,
+                        dest_row=GRID_SIZE - 1 - dest_idx_rev,
+                        dest_col=c,
+                        value=value,
+                        merged=merged,
+                    )
+                )
         result_grid = _transpose(processed_down)
 
     moved = result_grid != grid
-    return SlideResult(new_grid=result_grid, score_delta=total_score, moved=moved)
+    return SlideResult(
+        new_grid=result_grid,
+        score_delta=total_score,
+        moved=moved,
+        tile_moves=all_tile_moves if moved else [],
+    )

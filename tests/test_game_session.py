@@ -977,3 +977,56 @@ def test_accessor_type_correctness(session: GameSession) -> None:
     )
 
     assert isinstance(session.can_undo(), bool), "can_undo() should return bool"
+
+# ---------------------------------------------------------------------------
+# TileMove Integration Tests (TDD Red Phase — TileMove does NOT exist yet)
+# ---------------------------------------------------------------------------
+
+
+def test_move_returns_tile_moves(session: GameSession) -> None:
+    """Integration: session.move() returns tile_moves populated from Board.move().
+
+    Sets board to [[2,2,0,0], zeros...] and slides LEFT. Expects two TileMove
+    records in result.tile_moves with correct coordinate mapping.
+    """
+    from src.core.board import TileMove, Direction, BoardState
+
+    grid = [
+        [2, 2, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+    session._board.set_state(BoardState(grid=grid, score=0, moves=0))
+    result = session.move(Direction.LEFT)
+    assert result.moved is True
+    assert isinstance(result.tile_moves, list)
+    assert len(result.tile_moves) > 0, "tile_moves should be non-empty after a merge"
+    assert all(
+        isinstance(m, TileMove) for m in result.tile_moves
+    ), "All entries must be TileMove instances"
+    assert all(
+        hasattr(m, "source_row") and hasattr(m, "dest_row") and hasattr(m, "value")
+        for m in result.tile_moves
+    ), "TileMove must have source_row, dest_row, value attributes"
+
+
+def test_move_illegal_returns_empty_tile_moves(session: GameSession) -> None:
+    """Integration: illegal move returns empty tile_moves in MoveResult.
+
+    Sets board with a single tile at (0,0) and slides LEFT — no movement possible.
+    """
+    from src.core.board import Direction, BoardState
+
+    grid = [
+        [2, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+    session._board.set_state(BoardState(grid=grid, score=0, moves=0))
+    result = session.move(Direction.LEFT)
+    assert result.moved is False
+    assert result.tile_moves == [], (
+        f"Expected empty tile_moves for illegal move, got {result.tile_moves}"
+    )
