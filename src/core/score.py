@@ -10,6 +10,8 @@ rendering dependencies.
 Error codes: E-S01 (corrupt file → 0), E-S02 (missing file → 0),
 E-S03 (write failure → log warning, no raise).
 """
+# CHANGELOG:
+# - Sprint 1: Created Score module for score tracking and high-score persistence
 
 from __future__ import annotations
 

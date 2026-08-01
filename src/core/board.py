@@ -73,6 +73,7 @@ Public API:
 # - Sprint 1: Add Board.grid property for BoardProtocol compliance
 # - Sprint 1: Fix has_rotten logic in is_game_over — game continues when rotten tiles present
 # - Sprint 1: Add has_rotten awareness to is_game_over
+# - Sprint 2: Add Board overlay API (get_rotten_overlay, add_rotten, remove_rotten, BoardState.rotten_overlay)
 
 from __future__ import annotations
 

@@ -2,10 +2,18 @@
 
 Re-exports the public API from submodules so callers can import directly::
 
-    from src.core import Board, Direction, Rules
+    from src.core import (
+        Board, BoardState, Direction, SlideResult, slide_merge,
+        BoardProtocol, Rules, Score,
+        Achievement, Achievements, Twist, TwistEffect,
+        GameSession, MoveResult,
+    )
 
-Import order follows dependency chain: board (leaf) -> rules -> score.
+Import order follows dependency chain: board (leaf) -> rules -> score ->
+achievements -> twist -> game_session.
 """
+# CHANGELOG:
+# - Sprint 2: Added Achievement, Achievements, Twist, TwistEffect, GameSession, MoveResult exports
 
 from src.core.board import Board, BoardState, Direction, SlideResult, slide_merge
 from src.core.rules import BoardProtocol, Rules

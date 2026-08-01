@@ -14,6 +14,8 @@ Dependencies:
     copy, random, dataclasses — stdlib only. src.core.* modules.
 Zero rendering dependencies.
 """
+# CHANGELOG:
+# - Sprint 2: Created GameSession orchestrator with 6-module coordination (Board, Rules, Score, History, Achievements, Twist)
 
 from __future__ import annotations
 
