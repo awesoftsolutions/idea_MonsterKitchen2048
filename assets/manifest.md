@@ -39,7 +39,7 @@ All 24 Monster Kitchen visual assets for the2048 game. Generated via `image_gene
 
 | # | Filename | AssetLoader Key | Description |
 |---|----------|----------------|-------------|
-| 12 | tile_12_rotten.png | rotten_normal | Green/brown slimy food blob with X eyes and stink lines — yucky-funny, NOT scary |
+| 12 | tile_12_rotten_food.png | rotten_normal | Green/brown slimy food blob with X eyes and stink lines — yucky-funny, NOT scary |
 | 13 | tile_13_rotten_warning.png | rotten_warning | Same rotten blob with yellow warning aura — contamination imminent |
 
 ## UI Elements (assets/ui/)
@@ -105,7 +105,7 @@ All 24 Monster Kitchen visual assets for the2048 game. Generated via `image_gene
 ### Special Tile Keys
 | Key | Filename |
 |-----|----------|
-| rotten_normal | tile_12_rotten.png |
+| rotten_normal | tile_12_rotten_food.png |
 | rotten_warning | tile_13_rotten_warning.png |
 
 ---
