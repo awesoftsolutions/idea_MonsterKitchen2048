@@ -9,6 +9,8 @@
     - has_rotten twist-awareness (AC-8)
     - Stalemate trap detection (OQ-P17)
 """
+# CHANGELOG:
+# - Phase 3 Sprint 1: Add 8 stalemate trap tests + 9 behavioral updates (OQ-P17: rescueable-pair detection)
 
 from __future__ import annotations
 

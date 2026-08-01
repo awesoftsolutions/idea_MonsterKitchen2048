@@ -10,6 +10,8 @@ is correct and expected in TDD red-phase.
 Import pattern:
     from src.core.game_session import GameSession, MoveResult
 """
+# CHANGELOG:
+# - Phase 3 Sprint 1: Add 13 GameSession accessor tests (OQ-P16: get_board_grid, get_score, get_high_score, get_move_count, get_rotten_overlay, can_undo)
 
 from __future__ import annotations
 

@@ -12,6 +12,7 @@ No existing files are modified by this test suite.
 """
 # CHANGELOG:
 # - Sprint 2 Task 5: Create integration test suite (11 tests)
+# - Phase 3 Sprint 1: Update game_over integration test for OQ-P17 stalemate fix
 
 from __future__ import annotations
 
