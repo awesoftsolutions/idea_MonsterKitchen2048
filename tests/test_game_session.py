@@ -503,7 +503,11 @@ def test_game_over_no_rotten(session: GameSession) -> None:
 
 
 def test_game_over_with_rotten(session: GameSession) -> None:
-    """AC-10: Full board with rotten tiles → game is NOT over (rotten can clear)."""
+    """OQ-P17: Full board with single non-rescueable rotten tile → game IS over.
+
+    A single rotten tile with no adjacent same-value rotten partner
+    is not rescueable — is_game_over returns True.
+    """
     from src.core.board import BoardState
 
     full_grid = [
@@ -513,13 +517,13 @@ def test_game_over_with_rotten(session: GameSession) -> None:
         [4, 2, 4, 2],
     ]
     session._board.set_state(BoardState(grid=full_grid, score=100, moves=50))
-    # Add a rotten tile to the board (requires non-zero cell)
+    # Add a single rotten tile — no adjacent rotten with same value
     session._board.add_rotten(0, 0, countdown=2)
     # Sync twist overlay from board so game_over reads the rotten presence
     session._twist._overlay = session._board.get_rotten_overlay()
 
-    assert session.game_over is False, (
-        "full board with rotten tiles should NOT be game over"
+    assert session.game_over is True, (
+        "single non-rescueable rotten tile — game IS over (OQ-P17)"
     )
 
 
@@ -740,3 +744,234 @@ def test_no_pygame_imports_in_game_session() -> None:
     source = inspect.getsource(module)
     assert "pygame" not in source.lower(), "game_session.py must not reference pygame"
     assert "display" not in source.lower(), "game_session.py must not reference display"
+
+
+# ---------------------------------------------------------------------------
+# Accessor Tests
+# ---------------------------------------------------------------------------
+
+
+def test_accessor_get_board_grid_initial(session: GameSession) -> None:
+    """AC-1: get_board_grid() returns a 4x4 grid with exactly 2 non-zero cells on a fresh session."""
+    grid = session.get_board_grid()
+
+    assert len(grid) == 4, f"Grid should have 4 rows, got {len(grid)}"
+    assert all(len(row) == 4 for row in grid), "Each row should have 4 columns"
+    tile_count = sum(1 for row in grid for cell in row if cell != 0)
+    assert tile_count == 2, f"Fresh session should have 2 tiles, got {tile_count}"
+    assert grid == session._board.get_grid(), "Grid should match internal board state"
+
+
+def test_accessor_get_score_initial(session: GameSession) -> None:
+    """AC-1: get_score() returns 0 on a fresh session."""
+    score = session.get_score()
+
+    assert score == 0, f"Initial score should be 0, got {score}"
+    assert score == session._score.get_score(), (
+        "Score should match internal score state"
+    )
+
+
+def test_accessor_get_high_score_initial(session: GameSession) -> None:
+    """AC-1: get_high_score() returns 0 on a fresh session (no prior high score persisted)."""
+    high_score = session.get_high_score()
+
+    assert high_score == 0, f"Initial high score should be 0, got {high_score}"
+    assert high_score == session._score.get_high_score(), (
+        "High score should match internal score state"
+    )
+
+
+def test_accessor_get_move_count_initial(session: GameSession) -> None:
+    """AC-1: get_move_count() returns 0 on a fresh session."""
+    count = session.get_move_count()
+
+    assert count == 0, f"Initial move count should be 0, got {count}"
+    assert count == session._board.get_state().moves, (
+        "Move count should match internal board state"
+    )
+
+
+def test_accessor_get_rotten_overlay_initial(session: GameSession) -> None:
+    """AC-1: get_rotten_overlay() returns a 4x4 all-zero grid on a fresh session."""
+    overlay = session.get_rotten_overlay()
+
+    assert len(overlay) == 4, f"Overlay should have 4 rows, got {len(overlay)}"
+    assert all(len(row) == 4 for row in overlay), "Each row should have 4 columns"
+    assert all(cell == 0 for row in overlay for cell in row), (
+        "Fresh session overlay should be all zeros"
+    )
+
+
+def test_accessor_can_undo_initial(session: GameSession) -> None:
+    """AC-1: can_undo() returns False on a fresh session (no moves made)."""
+    result = session.can_undo()
+
+    assert result is False, "Fresh session should not have undo history"
+
+
+def test_accessor_post_move_state(session: GameSession) -> None:
+    """Verify all 6 accessors return correct values after one legal merge move."""
+    from src.core.board import Direction, BoardState
+
+    session._board.reset()
+    session._board.set_state(
+        BoardState(
+            grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+            score=0,
+            moves=0,
+        )
+    )
+
+    session.move(Direction.LEFT)
+
+    score = session.get_score()
+    assert score > 0, f"Score should increase after merge, got {score}"
+
+    move_count = session.get_move_count()
+    assert move_count == 1, f"Move count should be 1, got {move_count}"
+
+    can_undo = session.can_undo()
+    assert can_undo is True, "Should be able to undo after a legal move"
+
+    grid = session.get_board_grid()
+    tile_count = sum(1 for row in grid for cell in row if cell != 0)
+    assert 2 <= tile_count <= 3, (
+        f"Expected 2 or 3 non-zero cells after merge+spawn, got {tile_count}"
+    )
+
+
+def test_accessor_grid_defensive_copy(session: GameSession) -> None:
+    """Verify mutating get_board_grid() return value does not affect internal state."""
+    grid1 = session.get_board_grid()
+
+    grid1[0][0] = 9999
+
+    grid2 = session.get_board_grid()
+    assert grid2[0][0] != 9999, f"Mutation leaked: grid2[0][0] == {grid2[0][0]}"
+    assert grid2 == session._board.get_grid(), (
+        "Internal board state should be unaffected by external mutation"
+    )
+
+
+def test_accessor_overlay_defensive_copy(session: GameSession) -> None:
+    """Verify mutating get_rotten_overlay() return value does not affect internal state."""
+    overlay1 = session.get_rotten_overlay()
+
+    overlay1[0][0] = 7777
+
+    overlay2 = session.get_rotten_overlay()
+    assert overlay2[0][0] != 7777, (
+        f"Mutation leaked: overlay2[0][0] == {overlay2[0][0]}"
+    )
+    assert overlay2 == session._board.get_rotten_overlay(), (
+        "Internal overlay state should be unaffected by external mutation"
+    )
+
+
+def test_accessor_score_reflects_delta(session: GameSession) -> None:
+    """Verify get_score() reflects accumulated merge deltas after multiple moves."""
+    from src.core.board import Direction, BoardState
+
+    # First merge: [2,2,0,0] LEFT -> delta 4
+    session._board.reset()
+    session._board.set_state(
+        BoardState(
+            grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+            score=0,
+            moves=0,
+        )
+    )
+    session.move(Direction.LEFT)
+
+    initial_delta = session.get_score()
+    assert initial_delta == 4, f"First merge should yield score 4, got {initial_delta}"
+
+    # Second merge: set up another mergeable scenario
+    session._board.set_state(
+        BoardState(
+            grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+            score=session._score.get_score(),
+            moves=session._board.get_state().moves,
+        )
+    )
+    session.move(Direction.LEFT)
+
+    accumulated_score = session.get_score()
+    assert accumulated_score > initial_delta, (
+        f"Score should accumulate: expected > {initial_delta}, got {accumulated_score}"
+    )
+
+
+def test_accessor_can_undo_transition(session: GameSession) -> None:
+    """Verify can_undo() transitions False -> True -> False through move+undo cycle."""
+    from src.core.board import Direction, BoardState
+
+    assert session.can_undo() is False, "Fresh session should not allow undo"
+
+    session._board.reset()
+    session._board.set_state(
+        BoardState(
+            grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+            score=0,
+            moves=0,
+        )
+    )
+    session.move(Direction.LEFT)
+
+    assert session.can_undo() is True, "Should be able to undo after a legal move"
+
+    session.undo()
+    assert session.can_undo() is False, (
+        "Should not be able to undo after restoring to initial state"
+    )
+
+
+def test_accessor_high_score_persists_after_undo(session: GameSession) -> None:
+    """Verify get_high_score() retains peak score after undo lowers current score."""
+    from src.core.board import Direction, BoardState
+
+    session._board.reset()
+    session._board.set_state(
+        BoardState(
+            grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+            score=0,
+            moves=0,
+        )
+    )
+
+    session.move(Direction.LEFT)
+    peak_score = session.get_high_score()
+    assert peak_score > 0, f"High score should capture merge, got {peak_score}"
+
+    session.undo()
+
+    after_undo_high_score = session.get_high_score()
+    assert after_undo_high_score == peak_score, (
+        f"High score should persist: expected {peak_score}, got {after_undo_high_score}"
+    )
+
+
+def test_accessor_type_correctness(session: GameSession) -> None:
+    """Verify all 6 accessors return the declared types."""
+    grid = session.get_board_grid()
+    assert isinstance(grid, list), "get_board_grid() should return a list"
+    assert all(isinstance(row, list) for row in grid), (
+        "get_board_grid() rows should be lists"
+    )
+
+    assert isinstance(session.get_score(), int), "get_score() should return int"
+    assert isinstance(session.get_high_score(), int), (
+        "get_high_score() should return int"
+    )
+    assert isinstance(session.get_move_count(), int), (
+        "get_move_count() should return int"
+    )
+
+    overlay = session.get_rotten_overlay()
+    assert isinstance(overlay, list), "get_rotten_overlay() should return a list"
+    assert all(isinstance(row, list) for row in overlay), (
+        "get_rotten_overlay() rows should be lists"
+    )
+
+    assert isinstance(session.can_undo(), bool), "can_undo() should return bool"

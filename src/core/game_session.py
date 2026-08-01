@@ -203,6 +203,30 @@ class GameSession:
         # STEP 2-3: Delegate to Rules
         return self._rules.is_game_over(self._board, has_rotten)
 
+    def get_board_grid(self) -> list[list[int]]:
+        """Return a defensive copy of the 4x4 tile value grid."""
+        return self._board.get_grid()
+
+    def get_score(self) -> int:
+        """Return the current accumulated score."""
+        return self._score.get_score()
+
+    def get_high_score(self) -> int:
+        """Return the all-time high score."""
+        return self._score.get_high_score()
+
+    def get_move_count(self) -> int:
+        """Return the total number of board-changing moves made."""
+        return self._board.get_state().moves
+
+    def get_rotten_overlay(self) -> list[list[int]]:
+        """Return a defensive copy of the 4x4 rotten overlay grid."""
+        return self._board.get_rotten_overlay()
+
+    def can_undo(self) -> bool:
+        """Return True if undo history is available."""
+        return self._history.can_undo()
+
     def save(self) -> dict:
         """Serialize full game state to a JSON-compatible dict.
 
