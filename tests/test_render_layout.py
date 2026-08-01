@@ -19,7 +19,7 @@ Used-by:
     CI pipeline (pytest), Sprint 2 Task 2 acceptance verification.
 
 Public API:
-    Test functions (14 standalone):
+    Test functions (18 standalone):
         test_boardlayout_default_dimensions()
             BoardLayout defaults match 700x800 window, GRID_SIZE 4.
         test_boardlayout_cell_size_is_positive_integer()
@@ -214,6 +214,86 @@ def test_mascot_states_has_3_entries() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Disk-File Validation Tests (TDD Red Phase)
+# ---------------------------------------------------------------------------
+
+
+def test_tile_sprites_filenames_exist_on_disk() -> None:
+    """Every TILE_SPRITES value matches an actual file in assets/tiles/.
+
+    Iterates over all 11 tile-value entries and asserts each filename
+    exists at the expected path on disk. Uses os.path.join for
+    cross-platform path construction.
+    """
+    for value, filename in TILE_SPRITES.items():
+        filepath = os.path.join("assets", "tiles", filename)
+        assert os.path.isfile(filepath), (
+            f"TILE_SPRITES[{value}] = '{filename}' -> Missing file: {filepath}"
+        )
+
+
+def test_mascot_states_filenames_exist_on_disk() -> None:
+    """Every MASCOT_STATES value matches an actual file in assets/mascot/.
+
+    Iterates over all 3 mascot state entries and asserts each filename
+    exists at the expected path on disk. Validates that the tile_XX_
+    prefixed filenames in MASCOT_STATES match actual files on disk.
+    """
+    for state, filename in MASCOT_STATES.items():
+        filepath = os.path.join("assets", "mascot", filename)
+        assert os.path.isfile(filepath), (
+            f"MASCOT_STATES['{state}'] = '{filename}' -> Missing file: {filepath}"
+        )
+
+
+def test_ui_sprite_names_filenames_exist_on_disk() -> None:
+    """Every UI_SPRITE_NAMES value matches an actual file in assets/ui/.
+
+    Iterates over all 8 UI element entries and asserts each filename
+    exists at the expected path on disk. Validates that the tile_XX_
+    prefixed filenames in UI_SPRITE_NAMES match actual files on disk.
+    """
+    for name, filename in UI_SPRITE_NAMES.items():
+        filepath = os.path.join("assets", "ui", filename)
+        assert os.path.isfile(filepath), (
+            f"UI_SPRITE_NAMES['{name}'] = '{filename}' -> Missing file: {filepath}"
+        )
+
+
+def test_all_sprite_filenames_exist_on_disk() -> None:
+    """Integration: every filename in all three sprite dicts is present on disk.
+
+    Combines all three dictionaries into a single sweep and asserts that
+    every referenced filename resolves to an existing file. Provides a
+    single comprehensive check that catches any sprite-to-disk mismatch
+    regardless of which dictionary it belongs to.
+    """
+    tile_dir = os.path.join("assets", "tiles")
+    ui_dir = os.path.join("assets", "ui")
+    mascot_dir = os.path.join("assets", "mascot")
+    failures: list[str] = []
+
+    for value, filename in TILE_SPRITES.items():
+        filepath = os.path.join(tile_dir, filename)
+        if not os.path.isfile(filepath):
+            failures.append(f"TILE_SPRITES[{value}] = '{filename}' -> {filepath}")
+
+    for name, filename in UI_SPRITE_NAMES.items():
+        filepath = os.path.join(ui_dir, filename)
+        if not os.path.isfile(filepath):
+            failures.append(f"UI_SPRITE_NAMES['{name}'] = '{filename}' -> {filepath}")
+
+    for state, filename in MASCOT_STATES.items():
+        filepath = os.path.join(mascot_dir, filename)
+        if not os.path.isfile(filepath):
+            failures.append(f"MASCOT_STATES['{state}'] = '{filename}' -> {filepath}")
+
+    assert failures == [], "Sprite filenames missing from disk:\n  " + "\n  ".join(
+        failures
+    )
+
+
+# ---------------------------------------------------------------------------
 # __init__.py Export Tests
 # ---------------------------------------------------------------------------
 
@@ -227,12 +307,12 @@ def test_init_exports_boardlayout() -> None:
     assert layout.cell_size == 162
 
 
-def test_init_all_contains_four_names() -> None:
-    """AC-6: src.render.__all__ has exactly 4 exports."""
+def test_init_all_contains_three_names() -> None:
+    """AC-6: src.render.__all__ has exactly 3 exports."""
     import src.render as render_mod
 
     assert hasattr(render_mod, "__all__")
-    assert len(render_mod.__all__) == 4
-    expected_names = ["AssetLoader", "BoardLayout", "BoardRenderer", "HUD"]
+    assert len(render_mod.__all__) == 3
+    expected_names = ["AssetLoader", "BoardLayout", "Renderer"]
     for name in expected_names:
         assert name in render_mod.__all__

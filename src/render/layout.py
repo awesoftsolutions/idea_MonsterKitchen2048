@@ -128,19 +128,21 @@ TILE_SPRITES: dict[int, str] = {
     2048: "tile_11_mega_cake.png",
 }
 
+# All UI sprite filenames follow the tile_XX_<name>.png convention (see asset manifest).
 UI_SPRITE_NAMES: dict[str, str] = {
-    "board_background": "board_background.png",
-    "cell_empty": "cell_empty.png",
-    "score_card": "score_card.png",
-    "title_logo": "title_logo.png",
-    "new_game_button": "new_game_button.png",
-    "game_over_overlay": "game_over_overlay.png",
-    "win_overlay": "win_overlay.png",
-    "background_wallpaper": "background_wallpaper.png",
+    "board_background": "tile_14_board_background.png",
+    "cell_empty": "tile_15_cell_empty.png",
+    "score_card": "tile_16_score_card.png",
+    "title_logo": "tile_17_title_logo.png",
+    "new_game_button": "tile_18_new_game_button.png",
+    "game_over_overlay": "tile_19_game_over_overlay.png",
+    "win_overlay": "tile_20_win_overlay.png",
+    "background_wallpaper": "tile_21_background_wallpaper.png",
 }
 
+# All mascot sprite filenames follow the tile_XX_<name>.png convention (see asset manifest).
 MASCOT_STATES: dict[str, str] = {
-    "idle": "mascot_idle.png",
-    "happy": "mascot_happy.png",
-    "worried": "mascot_worried.png",
+    "idle": "tile_22_mascot_idle.png",
+    "happy": "tile_23_mascot_happy.png",
+    "worried": "tile_24_mascot_worried.png",
 }
