@@ -175,11 +175,14 @@ class Twist:
                 if old_val > 0 and new_val == 0:
                     board.remove_rotten(row, col)
                 elif old_val == 0 and new_val > 0:
-                    board.add_rotten(row, col, new_val)
+                    # Cell may have been merged empty during slide — guard
+                    if not board.is_empty(row, col):
+                        board.add_rotten(row, col, new_val)
                 elif old_val > 0 and new_val > 0 and old_val != new_val:
                     # Countdown was decremented — update via remove + add
                     board.remove_rotten(row, col)
-                    board.add_rotten(row, col, new_val)
+                    if not board.is_empty(row, col):
+                        board.add_rotten(row, col, new_val)
 
         # Update Twist's cached overlay copy
         self._overlay = [row[:] for row in working_overlay]
