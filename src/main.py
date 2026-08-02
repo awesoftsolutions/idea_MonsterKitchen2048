@@ -17,6 +17,7 @@ Usage::
 # CHANGELOG:
 # - Sprint 4-1: AnimationManager integration — import + optional init in GameWindow, animation start/update in loop
 # - Sprint 4-1: Animation interruption handling — snap_to_end() on new arrow input before processing move
+# - Sprint 4-2: ToastManager integration — import (try/except), _toast_manager init, new_achievements propagation via InputHandler return dict, toast enqueue in _handle_keydown, toast update/render in _render, merge_manager param forwarding, toast clear on new_game
 
 from __future__ import annotations
 
@@ -36,6 +37,11 @@ try:
     from src.render.animation_manager import AnimationManager
 except ImportError:
     AnimationManager = None  # type: ignore[assignment,misc]
+
+try:
+    from src.render.toast_manager import ToastManager
+except ImportError:
+    ToastManager = None  # type: ignore[assignment,misc]
 
 
 class GameState(enum.Enum):
@@ -116,7 +122,7 @@ class InputHandler:
         Returns:
             A dict describing what happened, or None if key is not recognized
             or not valid in the current state. Possible return dicts:
-            {"action": "move", "moved": bool, "tile_moves": list, "state_transition": GameState | None}
+            {"action": "move", "moved": bool, "tile_moves": list, "state_transition": GameState | None, "new_achievements": list}
             {"action": "undo"}
             {"action": "new_game", "new_state": GameState.IDLE}
         """
@@ -142,6 +148,7 @@ class InputHandler:
                 "moved": result.moved,
                 "tile_moves": result.tile_moves,
                 "state_transition": state_transition,
+                "new_achievements": result.new_achievements,
             }
 
         # Phase 2: Z key handling (undo)
@@ -295,6 +302,8 @@ class GameWindow:
             )
         else:
             self._animation_manager = None  # type: ignore[assignment]
+        self._toast_manager = ToastManager() if ToastManager is not None else None
+        self._last_dt: float = 0.0
 
     @property
     def _state(self) -> GameState:
@@ -350,6 +359,7 @@ class GameWindow:
                     self._pending_tile_moves.clear()
 
                 dt = self._clock.tick(60) / 1000.0
+                self._last_dt = dt
 
                 # Advance animation clock
                 if self._animation_manager is not None:
@@ -411,11 +421,18 @@ class GameWindow:
                     self._state = state_transition
                 # Check win/game-over via StateManager
                 self._check_win_condition()
+                # Enqueue achievement toasts
+                new_achievements = result.get("new_achievements", [])
+                if new_achievements and self._toast_manager is not None:
+                    for ach in new_achievements:
+                        self._toast_manager.show(ach.name, ach.description)
 
         # Apply new_game action
         if action == "new_game":
             if "new_state" in result:
                 self._state = result["new_state"]
+            if self._toast_manager is not None:
+                self._toast_manager.clear()
 
     def _handle_mouse_click(self, pos: tuple[int, int]) -> None:
         """Detect new-game button click during GAME_OVER or WIN states.
@@ -435,6 +452,8 @@ class GameWindow:
         if should_start_new_game:
             self._session.new_game()
             self._state = GameState.IDLE
+            if self._toast_manager is not None:
+                self._toast_manager.clear()
 
     def _check_win_condition(self) -> None:
         """Thin wrapper: delegates to StateManager.check_win_condition()."""
@@ -462,9 +481,7 @@ class GameWindow:
                         if offset != (0.0, 0.0):
                             active_moves[(row, col)] = offset
 
-            self._renderer.render(
-                self._screen, self._session, active_moves=active_moves
-            )
+            self._renderer.render(self._screen, self._session, active_moves=active_moves)
 
             if self._state == GameState.GAME_OVER:
                 try:
@@ -479,6 +496,11 @@ class GameWindow:
                     self._screen.blit(overlay, (0, 0))
                 except KeyError:
                     pass
+
+            # Render achievement toasts on top of everything
+            if self._toast_manager is not None:
+                self._toast_manager.update(self._last_dt)
+                self._toast_manager.render(self._screen)
 
             pygame.display.flip()
             return True

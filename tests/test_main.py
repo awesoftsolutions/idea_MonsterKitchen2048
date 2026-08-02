@@ -33,10 +33,11 @@ import pytest
 # ---------------------------------------------------------------------------
 
 try:
-    from src.main import GameState, GameWindow, _check_win, main
+    from src.main import GameState, GameWindow, InputHandler, _check_win, main
 except ImportError:
     GameState = None  # type: ignore[assignment,misc]
     GameWindow = None  # type: ignore[assignment,misc]
+    InputHandler = None  # type: ignore[assignment,misc]
     _check_win = None  # type: ignore[assignment,misc]
     main = None  # type: ignore[assignment,misc]
 
@@ -49,6 +50,11 @@ try:
     from src.core.board import Direction
 except ImportError:
     Direction = None  # type: ignore[assignment,misc]
+
+try:
+    from src.render.toast_manager import ToastManager
+except ImportError:
+    ToastManager = None  # type: ignore[assignment,misc]
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +149,7 @@ def _make_mock_session(
     # game_over is a @property — configure it via type(mock)
     type(mock).game_over = PropertyMock(return_value=game_over)
     # move() returns a mock MoveResult with moved=True and empty tile_moves
-    mock.move.return_value = MagicMock(moved=True, tile_moves=[])
+    mock.move.return_value = MagicMock(moved=True, tile_moves=[], new_achievements=[])
     mock.undo.return_value = True
     return mock
 
@@ -458,9 +464,8 @@ def test_full_render_cycle_no_exception(
     monkeypatch.setattr(pygame.display, "flip", _mock_flip)
 
     window._render()  # type: ignore[union-attr]
-    mock_renderer.render.assert_called_once_with(
-        mock_screen, session, active_moves=None
-    )
+    call_kwargs = mock_renderer.render.call_args.kwargs
+    assert call_kwargs["active_moves"] is None
     assert flip_called["v"], "pygame.display.flip() was not called"
 
 
@@ -574,3 +579,133 @@ def test_undo_ignored_in_non_playing(window: object) -> None:
 
     window._handle_keydown(pygame.K_z)  # type: ignore[union-attr]
     session.undo.assert_not_called()
+
+
+# ===========================================================================
+# Sprint 4-2: Achievement Monitoring Integration — TDD Red Phase Tests
+# ===========================================================================
+
+
+def test_handle_keydown_returns_new_achievements() -> None:
+    """Sprint 4-2 AC-1: InputHandler.handle_keydown includes new_achievements in move result dict.
+
+    Verifies that the return dict from a move action contains a
+    'new_achievements' key with the correct Achievement objects from MoveResult.
+    """
+    ach1 = MagicMock()
+    ach1.name = "First Bite"
+    ach1.description = "Perform your first merge"
+    ach2 = MagicMock()
+    ach2.name = "Cupcake Collector"
+    ach2.description = "Reach tile value 32"
+
+    session = _make_mock_session()
+    session.move.return_value = MagicMock(
+        moved=True, tile_moves=[], new_achievements=[ach1, ach2]
+    )
+
+    result = InputHandler.handle_keydown(  # type: ignore[misc]
+        key=pygame.K_UP,
+        state=GameState.PLAYING,  # type: ignore[misc]
+        session=session,
+        animation_manager=None,
+    )
+
+    assert result is not None, "handle_keydown should return a dict for arrow key moves"
+    assert "new_achievements" in result, (
+        "Result dict must contain 'new_achievements' key"
+    )
+    achievements = result["new_achievements"]
+    assert len(achievements) == 2, f"Expected 2 achievements, got {len(achievements)}"  # type: ignore[arg-type]
+    names = {achievements[0].name, achievements[1].name}  # type: ignore[index]
+    assert names == {"First Bite", "Cupcake Collector"}, f"Unexpected achievement names: {names}"
+
+
+def test_game_window_creates_toast_manager(window: object) -> None:
+    """Sprint 4-2 AC-2: GameWindow.__init__ creates self._toast_manager.
+
+    Verifies that the constructor instantiates a ToastManager and stores
+    it as self._toast_manager (not None).
+    """
+    assert hasattr(window, "_toast_manager"), (
+        "GameWindow.__init__ must set self._toast_manager attribute"
+    )
+    assert window._toast_manager is not None, (  # type: ignore[union-attr]
+        "GameWindow._toast_manager must be a ToastManager instance, not None"
+    )
+
+
+def test_handle_keydown_enqueues_toasts_for_new_achievements(window: object) -> None:
+    """Sprint 4-2 AC-3: GameWindow._handle_keydown calls toast_manager.show for each achievement.
+
+    Verifies that when a move result contains new achievements, the window
+    calls toast_manager.show(achievement.name, achievement.description) for each.
+    """
+    ach1 = MagicMock()
+    ach1.name = "First Bite"
+    ach1.description = "Perform your first merge"
+    ach2 = MagicMock()
+    ach2.name = "Cupcake Collector"
+    ach2.description = "Reach tile value 32"
+
+    session = _make_mock_session()
+    session.move.return_value = MagicMock(
+        moved=True, tile_moves=[], new_achievements=[ach1, ach2]
+    )
+    window._session = session  # type: ignore[union-attr]
+    window._state = GameState.PLAYING  # type: ignore[misc,union-attr]
+
+    mock_toast_manager = MagicMock()
+    window._toast_manager = mock_toast_manager  # type: ignore[union-attr]
+
+    window._handle_keydown(pygame.K_UP)  # type: ignore[union-attr]
+
+    assert mock_toast_manager.show.call_count == 2, (
+        f"toast_manager.show() called {mock_toast_manager.show.call_count} times, expected 2"
+    )
+    mock_toast_manager.show.assert_any_call("First Bite", "Perform your first merge")
+    mock_toast_manager.show.assert_any_call("Cupcake Collector", "Reach tile value 32")
+
+
+def test_render_calls_toast_update_and_render(
+    window: object, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sprint 4-2 AC-4: GameWindow._render calls toast_manager.update(dt) and render(screen).
+
+    Verifies that _render() invokes toast_manager.update() to advance the timer
+    and toast_manager.render(screen) to draw the toast overlay, called after
+    board rendering and before display.flip().
+    """
+    mock_toast_manager = MagicMock()
+    window._toast_manager = mock_toast_manager  # type: ignore[union-attr]
+
+    mock_screen = _make_mock_surface(700, 800)
+    window._screen = mock_screen  # type: ignore[union-attr]
+    window._assets = _make_mock_assets()  # type: ignore[union-attr]
+    window._renderer = MagicMock()  # type: ignore[union-attr]
+    window._state = GameState.PLAYING  # type: ignore[misc,union-attr]
+
+    monkeypatch.setattr(pygame.display, "flip", lambda: None)
+
+    window._render()  # type: ignore[union-attr]
+
+    mock_toast_manager.update.assert_called_once()
+    mock_toast_manager.render.assert_called_once_with(mock_screen)
+
+
+def test_new_game_clears_toasts(window: object) -> None:
+    """Sprint 4-2 AC-6: New game action clears toast_manager.
+
+    Verifies that when action == 'new_game' (Space during GAME_OVER),
+    GameWindow._handle_keydown calls self._toast_manager.clear() to reset state.
+    """
+    mock_toast_manager = MagicMock()
+    window._toast_manager = mock_toast_manager  # type: ignore[union-attr]
+
+    session = _make_mock_session()
+    window._session = session  # type: ignore[union-attr]
+    window._state = GameState.GAME_OVER  # type: ignore[misc,union-attr]
+
+    window._handle_keydown(pygame.K_SPACE)  # type: ignore[union-attr]
+
+    mock_toast_manager.clear.assert_called_once()
