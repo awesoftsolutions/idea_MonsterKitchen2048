@@ -213,7 +213,7 @@ def _build_renderer_and_run(
     session = _make_mock_session(board=board, overlay=overlay, score=score)
 
     renderer = Renderer(assets, layout)  # type: ignore[misc]
-    renderer.render(screen, session, game_state=game_state)
+    renderer.render(screen, session, game_state=game_state, score=score)
 
     return screen, assets, layout
 
@@ -695,13 +695,13 @@ def test_layer_6_order_overlay_score_button(_patch_font: MagicMock) -> None:
                 return i
         return -1
 
-    overlay_sprite = assets.get_special_sprite("rotten_normal")
+    overlay_sprite = assets.get_ui_sprite("game_over_overlay")
     button_sprite = assets.get_ui_sprite("new_game_button")
 
     overlay_idx = _find_idx(overlay_sprite)
     button_idx = _find_idx(button_sprite)
 
-    assert overlay_idx >= 0, "rotten_normal sprite not blitted"
+    assert overlay_idx >= 0, "game_over_overlay sprite not blitted"
     assert button_idx >= 0, "new_game_button not blitted"
 
     font = _patch_font
