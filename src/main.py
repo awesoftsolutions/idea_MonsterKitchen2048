@@ -345,7 +345,7 @@ class GameWindow:
             raise SystemExit(f"Failed to initialize pygame: {e}") from e
 
         try:
-            self._screen = pygame.display.set_mode((700, 800), flags=pygame.NOFRAME)
+            self._screen = pygame.display.set_mode((700, 800))
             pygame.display.set_caption("Favur 2048")
         except Exception as e:
             pygame.quit()
