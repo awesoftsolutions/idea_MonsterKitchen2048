@@ -19,6 +19,7 @@ Public API:
         is_animating() → bool
         snap_to_end() → None
         get_merge_scale(row, col) → float
+        is_merge_destination(row, col) → bool
 
 Internal:
     _AnimationEntry — dataclass storing per-tile animation state.
@@ -31,6 +32,7 @@ Constants:
 
 # CHANGELOG:
 # - Sprint 4-1: New pure-logic AnimationManager class — tile-slide interpolation, merge scale-pulse, snap-to-end
+# - Sprint 4-2: Added is_merge_destination() public convenience method
 
 from __future__ import annotations
 
@@ -259,3 +261,15 @@ class AnimationManager:
         scale = 1.0 + PULSE_AMPLITUDE * (1.0 - pulse_progress)
 
         return scale
+
+    def is_merge_destination(self, row: int, col: int) -> bool:
+        """Return True if (row, col) is a merge destination in the current animation.
+
+        Args:
+            row: Grid row index (0-based).
+            col: Grid column index (0-based).
+
+        Returns:
+            True if the cell is a merge destination, False otherwise.
+        """
+        return (row, col) in self._merge_map

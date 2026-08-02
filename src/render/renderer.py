@@ -25,6 +25,7 @@ Usage::
 """
 # CHANGELOG:
 # - Sprint 3 Review: Type-annotation strictness fixes and contract comment
+# - Sprint 4-2: Added celebration_effects parameter to render() (Layer 3.5)
 
 from __future__ import annotations
 
@@ -32,6 +33,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     import pygame.font
+
+from src.render.merge_celebration import render_celebration_effects
 
 
 class Renderer:
@@ -72,6 +75,7 @@ class Renderer:
         surface: Any,
         session: Any,
         active_moves: dict[tuple[int, int], tuple[float, float]] | None = None,
+        celebration_effects: list[Any] | None = None,
     ) -> None:
         """Render the complete game frame onto *surface*.
 
@@ -85,6 +89,10 @@ class Renderer:
             active_moves: Optional mapping of (row, col) to (offset_x, offset_y)
                 pixel offsets for animated tiles. When provided, animated tiles
                 are blitted at their offset positions. None means no animation.
+            celebration_effects: Optional list of MergeCelebrationEffect objects
+                for Layer 3.5 celebration rendering. None or empty means no
+                celebration layer. Rendered between grid cells (Layer 3) and
+                rotten overlay (Layer 4).
         """
         import pygame
 
@@ -124,6 +132,10 @@ class Renderer:
                         offset_x, offset_y = active_moves[(row_idx, col_idx)]
                         blit_rect = rect.move(int(offset_x), int(offset_y))
                     surface.blit(tile_sprite, blit_rect)
+
+        # --- Layer 3.5: Merge celebration effects ---
+        if celebration_effects is not None and len(celebration_effects) > 0:
+            render_celebration_effects(surface, celebration_effects, layout)
 
         # --- Layer 4: Rotten overlay ---
         for row_idx in range(4):
