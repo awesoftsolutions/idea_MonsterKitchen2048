@@ -15,6 +15,8 @@ Usage::
 """
 
 # CHANGELOG:
+# - Sprint 3 Task 1: Removed NOFRAME flag from display.set_mode() for standard window chrome
+# - Sprint 3 Task 2: Overlay consolidation from main.py into Renderer.render() Layer 6; added game_state/rotten_overlay/score params
 # - Sprint 4-1: AnimationManager integration — import + optional init in GameWindow, animation start/update in loop
 # - Sprint 4-1: Animation interruption handling — snap_to_end() on new arrow input before processing move
 # - Sprint 4-2: ToastManager integration — import (try/except), _toast_manager init, new_achievements propagation via InputHandler return dict, toast enqueue in _handle_keydown, toast update/render in _render, toast clear on new_game
@@ -146,7 +148,6 @@ class InputHandler:
             except ValueError:
                 direction = None
         if direction is not None:
-
             if state not in (GameState.IDLE, GameState.PLAYING):
                 return None
 
@@ -523,21 +524,10 @@ class GameWindow:
                 self._session,
                 active_moves=active_moves,
                 celebration_effects=self._celebration_effects,
+                game_state=self._state.value.lower(),
+                rotten_overlay=self._session.get_rotten_overlay(),
+                score=self._session.get_score(),
             )
-
-            if self._state == GameState.GAME_OVER:
-                try:
-                    overlay = self._assets.get_ui_sprite("game_over_overlay")
-                    self._screen.blit(overlay, (0, 0))
-                except KeyError:
-                    pass
-
-            if self._state == GameState.WIN:
-                try:
-                    overlay = self._assets.get_ui_sprite("win_overlay")
-                    self._screen.blit(overlay, (0, 0))
-                except KeyError:
-                    pass
 
             # Render achievement toasts on top of everything
             if self._toast_manager is not None:

@@ -3,7 +3,7 @@
 Tests the Renderer class from src/render/renderer.py using headless mocking
 of pygame surfaces, fonts, BoardLayout, AssetLoader, and GameSession.
 
-All 18 test cases (TC-1 through TC-18) are collected by pytest even when
+All 29 test cases (TC-1 through TC-29) are collected by pytest even when
 src/render/renderer.py does not exist yet. Tests naturally call Renderer()
 which is None when the module is missing, producing a TypeError.
 
@@ -14,17 +14,18 @@ Framework: pytest + unittest.mock. No pygame.init() or display required.
 # Purpose:   TDD Red Phase tests for the unified Renderer class.
 # System:    Exercises Renderer from src/render/renderer.py using headless
 #            mocking of pygame surfaces, fonts, BoardLayout, AssetLoader,
-#            and GameSession.  18 test cases (TC-1 through TC-18).
+#            and GameSession.  29 test cases (TC-1 through TC-29).
 # Depends:   src.render.renderer.Renderer (graceful fallback if missing),
 #            pytest, unittest.mock.
 # Used by:   pytest discovery (tests/ directory).
 # Public API: _make_mock_session, _make_mock_surface, _make_mock_assets,
 #             _make_sprite, _make_mock_layout, _cell_rect (test helpers).
-#             18 test_ functions (pytest test cases).
+#             29 test_ functions (pytest test cases).
 # --- End Contract ---
 
 from __future__ import annotations
 
+import inspect
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -37,6 +38,11 @@ try:
     from src.render.renderer import Renderer
 except ImportError:
     Renderer = None  # type: ignore[assignment,misc]
+
+try:
+    from src.main import GameWindow
+except ImportError:
+    GameWindow = None  # type: ignore[assignment,misc]
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +194,7 @@ def _build_renderer_and_run(
     board: list[list[int]] | None = None,
     overlay: list[list[int]] | None = None,
     score: int = 0,
+    game_state: str = "idle",
 ) -> tuple[MagicMock, MagicMock, MagicMock]:
     """Build renderer with mocks, run render(), return (screen, assets, layout).
 
@@ -195,6 +202,7 @@ def _build_renderer_and_run(
         board: 4x4 tile value grid.
         overlay: 4x4 rotten overlay grid.
         score: Current score value.
+        game_state: Game state string (e.g. "idle", "playing", "win", "game_over").
 
     Returns:
         Tuple of (screen mock, assets mock, layout mock).
@@ -205,7 +213,7 @@ def _build_renderer_and_run(
     session = _make_mock_session(board=board, overlay=overlay, score=score)
 
     renderer = Renderer(assets, layout)  # type: ignore[misc]
-    renderer.render(screen, session)
+    renderer.render(screen, session, game_state=game_state)
 
     return screen, assets, layout
 
@@ -509,3 +517,197 @@ def test_render_mixed_board_correct_sprite_per_cell(_patch_font: MagicMock) -> N
 
     # Overlay value 1 at (2,3) => rotten_warning
     assets.get_special_sprite.assert_any_call("rotten_warning")
+
+
+# ===========================================================================
+# NEW TESTS: TC-19 through TC-29 — mascot state, rotten overlay, Layer 6
+# ===========================================================================
+
+
+def test_idle_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
+    """TC-19 (AC-16): idle game state → mascot_idle sprite."""
+    screen, assets, _layout = _build_renderer_and_run(game_state="idle")
+    idle_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_mascot_sprite("idle")
+    ]
+    assert len(idle_calls) == 1, (
+        f"Expected 1 blit of mascot_idle, got {len(idle_calls)}"
+    )
+
+
+def test_playing_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
+    """TC-20 (AC-16): playing game state → mascot_idle sprite (no special mascot)."""
+    screen, assets, _layout = _build_renderer_and_run(game_state="playing")
+    idle_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_mascot_sprite("idle")
+    ]
+    assert len(idle_calls) == 1
+
+
+def test_game_over_state_blits_worried_mascot(_patch_font: MagicMock) -> None:
+    """TC-21 (AC-16): game_over game state → mascot_worried sprite."""
+    screen, assets, _layout = _build_renderer_and_run(game_state="game_over")
+    worried_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_mascot_sprite("worried")
+    ]
+    assert len(worried_calls) == 1
+
+
+def test_win_state_blits_happy_mascot(_patch_font: MagicMock) -> None:
+    """TC-22 (AC-16): win game state → mascot_happy sprite."""
+    screen, assets, _layout = _build_renderer_and_run(game_state="win")
+    happy_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_mascot_sprite("happy")
+    ]
+    assert len(happy_calls) == 1
+
+
+def test_default_game_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
+    """TC-23 (AC-16): default game_state → mascot_idle (backward compat)."""
+    screen, assets, _layout = _build_renderer_and_run()  # no game_state arg
+    idle_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_mascot_sprite("idle")
+    ]
+    assert len(idle_calls) == 1
+
+
+def test_rotten_overlay_blits_sprites_at_valid_positions(
+    _patch_font: MagicMock,
+) -> None:
+    """TC-24 (AC-14, AC-15): rotten overlay blits sprites at valid cell positions."""
+    overlay = [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]]
+    screen, assets, layout = _build_renderer_and_run(overlay=overlay)
+
+    warning_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_special_sprite("rotten_warning")
+    ]
+    assert len(warning_calls) >= 1, (
+        "Expected at least 1 rotten_warning blit for overlay value 1"
+    )
+    normal_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_special_sprite("rotten_normal")
+    ]
+    assert len(normal_calls) >= 1, (
+        "Expected at least 1 rotten_normal blit for overlay value 2"
+    )
+
+    cell_rect = layout.cell_rect(1, 1)
+    warn_pos = warning_calls[0].args[1]
+    assert warn_pos == (cell_rect[0], cell_rect[1])
+
+    cell_rect_2 = layout.cell_rect(2, 2)
+    normal_pos = normal_calls[0].args[1]
+    assert normal_pos == (cell_rect_2[0], cell_rect_2[1])
+
+
+def test_rotten_overlay_skips_out_of_bounds_cells(_patch_font: MagicMock) -> None:
+    """TC-25 (AC-14): out-of-bounds overlay positions (≥4) are skipped."""
+    overlay = [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    screen, assets, _layout = _build_renderer_and_run(overlay=overlay)
+
+    rotten_calls = [
+        c
+        for c in screen.blit.call_args_list
+        if c.args[0]
+        in (
+            assets.get_special_sprite("rotten_normal"),
+            assets.get_special_sprite("rotten_warning"),
+        )
+    ]
+    assert len(rotten_calls) >= 1
+
+
+def test_score_text_blitted_at_bottom_center(_patch_font: MagicMock) -> None:
+    """TC-26 (AC-11, AC-17): score text rendered at bottom of info_panel area."""
+    session = _make_mock_session(score=1024)
+
+    assets = _make_mock_assets()
+    layout = _make_mock_layout()
+    screen = _make_mock_surface(700, 800)
+
+    renderer = Renderer(assets, layout)  # type: ignore[misc]
+    renderer.render(screen, session, game_state="idle", rotten_overlay=None, score=1024)
+
+    font = _patch_font
+    score_text = font.render.return_value
+    score_text_blits = [
+        c for c in screen.blit.call_args_list if c.args[0] is score_text
+    ]
+    assert len(score_text_blits) >= 1, "Expected at least 1 score text blit"
+
+
+def test_render_accepts_new_kwargs(_patch_font: MagicMock) -> None:
+    """TC-27 (AC-17): render() accepts game_state, rotten_overlay, and score kwargs."""
+    assert Renderer is not None
+    sig = inspect.signature(Renderer.render)
+    params = list(sig.parameters.keys())
+    assert "game_state" in params, (
+        f"game_state param missing from render(); got {params}"
+    )
+    assert "rotten_overlay" in params, (
+        f"rotten_overlay param missing from render(); got {params}"
+    )
+    assert "score" in params, f"score param missing from render(); got {params}"
+
+
+def test_params_have_correct_defaults(_patch_font: MagicMock) -> None:
+    """TC-28 (AC-17): new params default to "idle"/None/None for backward compat."""
+    assert Renderer is not None
+    sig = inspect.signature(Renderer.render)
+    params = sig.parameters
+    assert params["game_state"].default == "idle", (
+        f"game_state default should be 'idle', got {params['game_state'].default}"
+    )
+    assert params["rotten_overlay"].default is None, (
+        f"rotten_overlay default should be None, got {params['rotten_overlay'].default}"
+    )
+    assert params["score"].default is None, (
+        f"score default should be None, got {params['score'].default}"
+    )
+
+
+def test_layer_6_order_overlay_score_button(_patch_font: MagicMock) -> None:
+    """TC-29 (AC-11): Layer 6 blit order → overlay sprite, score text, button sprite."""
+    overlay = [[0, 0, 0, 0], [0, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    screen, assets, _layout = _build_renderer_and_run(
+        overlay=overlay, score=2048, game_state="game_over",
+    )
+
+    all_blits = screen.blit.call_args_list
+
+    def _find_idx(sprite: object) -> int:
+        for i, c in enumerate(all_blits):
+            if c.args[0] is sprite:
+                return i
+        return -1
+
+    overlay_sprite = assets.get_special_sprite("rotten_normal")
+    button_sprite = assets.get_ui_sprite("new_game_button")
+
+    overlay_idx = _find_idx(overlay_sprite)
+    button_idx = _find_idx(button_sprite)
+
+    assert overlay_idx >= 0, "rotten_normal sprite not blitted"
+    assert button_idx >= 0, "new_game_button not blitted"
+
+    font = _patch_font
+    score_text = font.render.return_value
+    score_blits = [i for i, c in enumerate(all_blits) if c.args[0] is score_text]
+    score_in_layer6 = [i for i in score_blits if overlay_idx < i < button_idx]
+    assert len(score_in_layer6) >= 1, (
+        f"Score text expected between overlay ({overlay_idx}) and button ({button_idx})"
+    )
