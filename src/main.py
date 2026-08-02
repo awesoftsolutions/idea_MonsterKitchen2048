@@ -1,13 +1,66 @@
-"""src/main.py — Game entry point and state machine for Monster Kitchen 2048.
+"""Game entry point and state machine for Monster Kitchen 2048.
 
-Defines GameState enum, InputHandler, StateManager, and GameWindow class
-with pygame game loop, input handling, and state transitions. This is the
-ONLY file allowed to import both pygame and src.core modules — the
-architectural bridge between the pure-logic core layer and the pygame
-rendering pipeline.
+Purpose:
+    Defines GameState enum, InputHandler, StateManager, and GameWindow
+    class with pygame game loop, input handling, and state transitions.
+    This is the ONLY file allowed to import both pygame and src.core
+    modules — the architectural bridge between the pure-logic core
+    layer and the pygame rendering pipeline.
 
-Implements: ADR-019 (GameState enum), ADR-020 (key mapping dict),
-ADR-021 (renderer API), Sprint 3 Task 2.
+System:
+    Immediate-mode rendering loop at 60 FPS (ADR-015). GameWindow
+    orchestrates GameSession, StateManager, InputHandler, Renderer,
+    AnimationManager, and ToastManager. Window is 700×800 with standard
+    OS chrome (Sprint 3 Task 1).
+
+Implements:
+    ADR-019 (GameState enum), ADR-020 (key mapping dict),
+    ADR-021 (renderer API).
+
+Dependencies:
+    - pygame (display, event, time, font)
+    - src.core.board (Direction, TileMove)
+    - src.core.game_session (GameSession)
+    - src.render.asset_loader (AssetLoader)
+    - src.render.layout (BoardLayout, ANIMATION_DURATION_MS)
+    - src.render.renderer (Renderer)
+    - src.render.animation_manager (AnimationManager)
+    - src.render.toast_manager (ToastManager)
+    - src.render.merge_celebration (create_effect, update_effects,
+      cleanup_expired_effects)
+
+Used-by:
+    - Entry point: `poetry run python -m src.main`
+    - pytest test suite (via main() for integration tests)
+
+Public Interface:
+    class GameState(enum.Enum):
+        IDLE, PLAYING, GAME_OVER, WIN
+
+    class InputHandler:
+        KEY_DIRECTION_MAP: dict[int, Direction]
+        get_direction_for_key(key: int) -> Direction | None
+        handle_keydown(key, state, session, animation_manager) -> dict | None
+        handle_mouse_click(pos, state, renderer) -> bool
+
+    class StateManager:
+        state: GameState (property)
+        transition_to(new_state: GameState) -> None
+        check_win_condition(session: GameSession) -> None
+        is_input_allowed() -> bool
+        is_new_game_allowed() -> bool
+        is_undo_allowed() -> bool
+
+    class GameWindow:
+        run() -> None
+        _process_events() -> bool
+        _handle_keydown(key: int) -> None
+        _handle_mouse_click(pos: tuple[int, int]) -> None
+        _check_win_condition() -> None
+        _render() -> bool
+
+    def _check_win(grid: list[list[int]]) -> bool
+    def main() -> None
 
 Usage::
 
