@@ -3,7 +3,7 @@
 Tests the Renderer class from src/render/renderer.py using headless mocking
 of pygame surfaces, fonts, BoardLayout, AssetLoader, and GameSession.
 
-All 29 test cases (TC-1 through TC-29) are collected by pytest even when
+All 34 test cases (TC-1 through TC-34) are collected by pytest even when
 src/render/renderer.py does not exist yet. Tests naturally call Renderer()
 which is None when the module is missing, producing a TypeError.
 
@@ -14,13 +14,13 @@ Framework: pytest + unittest.mock. No pygame.init() or display required.
 # Purpose:   TDD Red Phase tests for the unified Renderer class.
 # System:    Exercises Renderer from src/render/renderer.py using headless
 #            mocking of pygame surfaces, fonts, BoardLayout, AssetLoader,
-#            and GameSession.  29 test cases (TC-1 through TC-29).
+#            and GameSession.  34 test cases (TC-1 through TC-34).
 # Depends:   src.render.renderer.Renderer (graceful fallback if missing),
 #            pytest, unittest.mock.
 # Used by:   pytest discovery (tests/ directory).
 # Public API: _make_mock_session, _make_mock_surface, _make_mock_assets,
 #             _make_sprite, _make_mock_layout, _cell_rect (test helpers).
-#             29 test_ functions (pytest test cases).
+#             34 test_ functions (pytest test cases).
 # --- End Contract ---
 
 from __future__ import annotations
@@ -520,12 +520,12 @@ def test_render_mixed_board_correct_sprite_per_cell(_patch_font: MagicMock) -> N
 
 
 # ===========================================================================
-# NEW TESTS: TC-19 through TC-29 — mascot state, rotten overlay, Layer 6
+# NEW TESTS: TC-19 through TC-29 -- mascot state, rotten overlay, Layer 6
 # ===========================================================================
 
 
 def test_idle_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
-    """TC-19 (AC-16): idle game state → mascot_idle sprite."""
+    """TC-19 (AC-16): idle game state -> mascot_idle sprite."""
     screen, assets, _layout = _build_renderer_and_run(game_state="idle")
     idle_calls = [
         c
@@ -538,7 +538,7 @@ def test_idle_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
 
 
 def test_playing_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
-    """TC-20 (AC-16): playing game state → mascot_idle sprite (no special mascot)."""
+    """TC-20 (AC-16): playing game state -> mascot_idle sprite (no special mascot)."""
     screen, assets, _layout = _build_renderer_and_run(game_state="playing")
     idle_calls = [
         c
@@ -549,7 +549,7 @@ def test_playing_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
 
 
 def test_game_over_state_blits_worried_mascot(_patch_font: MagicMock) -> None:
-    """TC-21 (AC-16): game_over game state → mascot_worried sprite."""
+    """TC-21 (AC-16): game_over game state -> mascot_worried sprite."""
     screen, assets, _layout = _build_renderer_and_run(game_state="game_over")
     worried_calls = [
         c
@@ -560,7 +560,7 @@ def test_game_over_state_blits_worried_mascot(_patch_font: MagicMock) -> None:
 
 
 def test_win_state_blits_happy_mascot(_patch_font: MagicMock) -> None:
-    """TC-22 (AC-16): win game state → mascot_happy sprite."""
+    """TC-22 (AC-16): win game state -> mascot_happy sprite."""
     screen, assets, _layout = _build_renderer_and_run(game_state="win")
     happy_calls = [
         c
@@ -571,7 +571,7 @@ def test_win_state_blits_happy_mascot(_patch_font: MagicMock) -> None:
 
 
 def test_default_game_state_blits_idle_mascot(_patch_font: MagicMock) -> None:
-    """TC-23 (AC-16): default game_state → mascot_idle (backward compat)."""
+    """TC-23 (AC-16): default game_state -> mascot_idle (backward compat)."""
     screen, assets, _layout = _build_renderer_and_run()  # no game_state arg
     idle_calls = [
         c
@@ -615,7 +615,7 @@ def test_rotten_overlay_blits_sprites_at_valid_positions(
 
 
 def test_rotten_overlay_skips_out_of_bounds_cells(_patch_font: MagicMock) -> None:
-    """TC-25 (AC-14): out-of-bounds overlay positions (≥4) are skipped."""
+    """TC-25 (AC-14): out-of-bounds overlay positions (>=4) are skipped."""
     overlay = [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     screen, assets, _layout = _build_renderer_and_run(overlay=overlay)
 
@@ -681,7 +681,7 @@ def test_params_have_correct_defaults(_patch_font: MagicMock) -> None:
 
 
 def test_layer_6_order_overlay_score_button(_patch_font: MagicMock) -> None:
-    """TC-29 (AC-11): Layer 6 blit order → overlay sprite, score text, button sprite."""
+    """TC-29 (AC-11): Layer 6 blit order -> overlay sprite, score text, button sprite."""
     overlay = [[0, 0, 0, 0], [0, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     screen, assets, _layout = _build_renderer_and_run(
         overlay=overlay, score=2048, game_state="game_over",
@@ -710,4 +710,114 @@ def test_layer_6_order_overlay_score_button(_patch_font: MagicMock) -> None:
     score_in_layer6 = [i for i in score_blits if overlay_idx < i < button_idx]
     assert len(score_in_layer6) >= 1, (
         f"Score text expected between overlay ({overlay_idx}) and button ({button_idx})"
+    )
+
+
+# ===========================================================================
+# TC-30 through TC-34 -- remaining AC coverage gaps
+# ===========================================================================
+
+
+def test_mascot_worried_when_playing_with_rotten_overlay(
+    _patch_font: MagicMock,
+) -> None:
+    """TC-30 (AC-2): playing + non-zero rotten overlay (explicit kwarg) -> worried."""
+    rotten_overlay = [[0, 0, 0, 0], [0, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    assets = _make_mock_assets()
+    layout = _make_mock_layout()
+    screen = _make_mock_surface(700, 800)
+    session = _make_mock_session(overlay=rotten_overlay)
+
+    renderer = Renderer(assets, layout)  # type: ignore[misc]
+    renderer.render(
+        screen, session,
+        game_state="playing",
+        rotten_overlay=rotten_overlay,
+    )
+
+    worried_sprite = assets.get_mascot_sprite("worried")
+    worried_blits = [
+        c for c in screen.blit.call_args_list if c.args[0] is worried_sprite
+    ]
+    assert len(worried_blits) == 1, (
+        f"Expected 1 blit of mascot_worried, got {len(worried_blits)}"
+    )
+    # Verify idle mascot was NOT called -- playing + rotten overrides to worried.
+    idle_call_count = sum(
+        1
+        for c in screen.blit.call_args_list
+        if c.args[0] is assets.get_mascot_sprite("idle")
+    )
+    assert idle_call_count == 0, (
+        f"mascot_idle should NOT be blitted when rotten overlay present, "
+        f"got {idle_call_count} blits"
+    )
+
+
+def test_win_overlay_blitted_on_win_state(_patch_font: MagicMock) -> None:
+    """TC-31 (AC-5): win game state -> win overlay sprite blitted at (0, 0)."""
+    screen, assets, _layout = _build_renderer_and_run(game_state="win")
+    overlay_sprite = assets.get_ui_sprite("win_overlay")
+    overlay_blits = [
+        c for c in screen.blit.call_args_list if c.args[0] is overlay_sprite
+    ]
+    assert len(overlay_blits) == 1, (
+        f"Expected 1 blit of win_overlay sprite, got {len(overlay_blits)}"
+    )
+    assert overlay_blits[0].args[1] == (0, 0)
+
+
+def test_mascot_fallback_on_key_error(_patch_font: MagicMock) -> None:
+    """TC-32 (AC-8): KeyError on mascot sprite triggers fallback to idle."""
+    assets = _make_mock_assets()
+    layout = _make_mock_layout()
+    screen = _make_mock_surface(700, 800)
+    session = _make_mock_session()
+
+    # Force KeyError for non-idle mascot states, keep idle as normal.
+    idle_sprite = _make_mock_surface()
+
+    def _key_error_side_effect(state: str) -> object:
+        if state == "idle":
+            return idle_sprite
+        raise KeyError(f"Missing mascot sprite: {state}")
+
+    assets.get_mascot_sprite.side_effect = _key_error_side_effect
+
+    renderer = Renderer(assets, layout)  # type: ignore[misc]
+    renderer.render(screen, session, game_state="win")
+
+    # Fallback should call get_mascot_sprite("idle") and blit the result.
+    idle_blit_count = sum(
+        1 for c in screen.blit.call_args_list if c.args[0] is idle_sprite
+    )
+    assert idle_blit_count == 1, (
+        f"Expected idle sprite to be blitted once via fallback, "
+        f"got {idle_blit_count}"
+    )
+
+
+def test_no_overlay_blitted_during_idle(_patch_font: MagicMock) -> None:
+    """TC-33 (AC-9): idle game state -> no overlay sprite blitted."""
+    _screen, assets, _layout = _build_renderer_and_run(game_state="idle")
+
+    all_get_ui_calls = [c.args[0] for c in assets.get_ui_sprite.call_args_list]
+    for overlay_name in ("game_over_overlay", "win_overlay"):
+        assert overlay_name not in all_get_ui_calls, (
+            f"{overlay_name} should NOT be fetched during idle state, "
+            f"but found in get_ui_sprite call args: {all_get_ui_calls}"
+        )
+
+
+def test_main_render_has_no_overlay_blit_code(_patch_font: MagicMock) -> None:
+    """TC-34 (AC-10): main.py _render() contains no overlay blit code."""
+    assert GameWindow is not None, (
+        "GameWindow should be importable from src.main"
+    )
+    source = inspect.getsource(GameWindow._render)
+    assert "game_over_overlay" not in source, (
+        "game_over_overlay blit code still present in main.py _render()"
+    )
+    assert "win_overlay" not in source, (
+        "win_overlay blit code still present in main.py _render()"
     )
