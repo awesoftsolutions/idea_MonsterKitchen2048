@@ -18,6 +18,7 @@ Usage::
 # - Sprint 4-1: AnimationManager integration — import + optional init in GameWindow, animation start/update in loop
 # - Sprint 4-1: Animation interruption handling — snap_to_end() on new arrow input before processing move
 # - Sprint 4-2: ToastManager integration — import (try/except), _toast_manager init, new_achievements propagation via InputHandler return dict, toast enqueue in _handle_keydown, toast update/render in _render, toast clear on new_game
+# - Sprint 4-2: MergeCelebrationEffect integration — import (try/except), _celebration_effects list init, create_effect() for merged TileMoves, update/cleanup per frame, celebration_effects kwarg to Renderer.render(), clear on new_game
 
 from __future__ import annotations
 
