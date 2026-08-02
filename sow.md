@@ -9,6 +9,17 @@ This is a **resumed run** of a previously interrupted project. The workspace alr
 
 ## ORIGINAL SPECIFICATION
 
+## RESUMED RUN (--force)
+
+This is a **resumed run** of a previously interrupted project. The workspace already contains work from a prior run. Before proceeding, you MUST:
+1. Read `registry://active_context.md` and `registry://progress.md` to understand the current project state and what has already been completed.
+2. Read `registry://sprints/` to see which sprints are done and which remain.
+3. Determine the lifecycle position and continue from where the prior run left off — do NOT restart from scratch.
+
+---
+
+## ORIGINAL SPECIFICATION
+
 # Statement of Work — 2048
 
 **Version:** 1.0 · **Date:** June 2026 · **Status:** Final

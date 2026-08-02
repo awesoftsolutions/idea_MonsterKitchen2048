@@ -226,11 +226,11 @@ def render_celebration_effects(
                 import pygame.font  # noqa: PLC0415
 
                 pygame.font.init()
-                render_celebration_effects._font = pygame.font.SysFont(
+                render_celebration_effects._font = pygame.font.SysFont(  # type: ignore[attr-defined]
                     "arial", 24, bold=True
                 )
 
-            font = render_celebration_effects._font
+            font = render_celebration_effects._font  # type: ignore[attr-defined]
             text = "+" + str(effect.value)
             text_surface = font.render(text, True, (255, 255, 255))
             text_surface.set_alpha(effect.score_alpha)
