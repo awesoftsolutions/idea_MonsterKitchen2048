@@ -43,7 +43,7 @@ Public API:
         _make_mock_surface(width, height) -> MagicMock
             Build a mock pygame.Surface for headless render assertions.
 
-    Test functions (8 standalone):
+    Test functions (9 standalone):
         test_enqueue_adds_to_queue              -- AC-1: show() creates Toast, is_empty=False.
         test_update_decrements_timer             -- AC-2: update() advances elapsed_ms.
         test_fade_out_begins_after_duration      -- AC-4: elapsed_ms reaches fade region.
@@ -52,6 +52,7 @@ Public API:
         test_render_draws_panel                  -- AC-3: render() blits to target surface.
         test_clear_removes_all                   -- clear() empties queue and active.
         test_no_pygame_import_at_module_level    -- AC-6: no pygame at import time.
+        test_toast_y_position_le_50              -- Fix 2: toast y <= 50px.
 """
 
 from __future__ import annotations
@@ -326,4 +327,50 @@ def test_no_pygame_import_at_module_level() -> None:
         f"Found pygame import(s) at module level: {module_level_pygame_imports}. "
         "Pygame must only be imported inside method bodies (_ensure_fonts, show) "
         "to maintain headless test compatibility."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: Toast y-position (Sprint 4-2 remediation)
+# ---------------------------------------------------------------------------
+
+
+def test_toast_y_position_le_50() -> None:
+    """Fix 2 AC-4: Toast panel y-position must be <= 50 pixels from top of window.
+
+    Renders a toast and inspects the panel blit position on the target surface.
+    The panel_y coordinate (from target_surface.blit call) must be <= 50 to
+    prevent the toast from falling below the visible game area on small screens.
+
+    Calculation reference (toast_manager.py lines 239-240):
+        board_bottom = 138 + 4 * 162  = 786
+        panel_y = board_bottom + TOAST_MARGIN_BOTTOM(20) = 806
+
+    FAIL REASON: Current panel_y = 806, which is well above the 50px threshold.
+    The fix must move the toast to a position that ensures visibility.
+    """
+    manager = ToastManager()  # type: ignore[misc]
+    mock_surface = _make_mock_surface(700, 900)
+
+    with patch("pygame.time.get_ticks", return_value=0):
+        manager.show("First Bite", "Perform your first merge")
+
+    manager.render(mock_surface)
+
+    # Extract the panel blit position from the target surface
+    # render() calls target_surface.blit(panel_surface, (panel_x, panel_y)) once
+    assert mock_surface.blit.called, (
+        "render() should call target_surface.blit to draw the toast panel"
+    )
+    blit_calls = mock_surface.blit.call_args_list
+    # The only blit on the target surface is the panel blit at line 260
+    assert len(blit_calls) >= 1, "Expected at least one blit call on target_surface"
+    # The panel blit is the last call (text blits go to the panel_surface, not target)
+    panel_blit = blit_calls[0]
+    position = panel_blit[0][1]  # second positional arg = (panel_x, panel_y)
+    panel_y = position[1]
+
+    assert panel_y <= 50, (
+        f"Toast panel y-position must be <= 50, got {panel_y}. "
+        "The toast falls outside the visible area on small screens."
     )

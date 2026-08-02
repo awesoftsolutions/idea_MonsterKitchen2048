@@ -51,7 +51,7 @@ Constants:
     FADE_DURATION_MS    — duration of the fade-out animation in milliseconds.
     TOAST_HEIGHT        — fixed panel height in pixels.
     TOAST_PADDING       — horizontal/vertical text padding inside the panel.
-    TOAST_MARGIN_BOTTOM \u2014 vertical gap from board bottom to toast panel.
+    (TOAST_MARGIN_BOTTOM removed \u2014 panel_y now uses constant 50 per ADR-R02)
 """
 # CHANGELOG:
 # - Sprint 4-2: New ToastManager class - deferred font init, sequential
@@ -236,8 +236,7 @@ class ToastManager:
         # Panel position: centered horizontally, above board bottom
         window_width = target_surface.get_width()
         panel_x = (window_width - panel_width) // 2
-        board_bottom = 138 + 4 * 162  # grid_origin_y + GRID_SIZE * cell_size
-        panel_y = board_bottom + TOAST_MARGIN_BOTTOM
+        panel_y = 50
 
         # Create semi-transparent panel
         panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)

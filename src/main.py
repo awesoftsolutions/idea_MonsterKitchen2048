@@ -17,7 +17,7 @@ Usage::
 # CHANGELOG:
 # - Sprint 4-1: AnimationManager integration — import + optional init in GameWindow, animation start/update in loop
 # - Sprint 4-1: Animation interruption handling — snap_to_end() on new arrow input before processing move
-# - Sprint 4-2: ToastManager integration — import (try/except), _toast_manager init, new_achievements propagation via InputHandler return dict, toast enqueue in _handle_keydown, toast update/render in _render, merge_manager param forwarding, toast clear on new_game
+# - Sprint 4-2: ToastManager integration — import (try/except), _toast_manager init, new_achievements propagation via InputHandler return dict, toast enqueue in _handle_keydown, toast update/render in _render, toast clear on new_game
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ import sys
 import traceback
 
 import pygame
+from typing import Any
 
 from src.core.board import Direction, TileMove
 from src.core.game_session import GameSession
@@ -42,6 +43,14 @@ try:
     from src.render.toast_manager import ToastManager
 except ImportError:
     ToastManager = None  # type: ignore[assignment,misc]
+
+try:
+    from src.render import merge_celebration as _merge_celebration
+    from src.render.merge_celebration import update_effects, cleanup_expired_effects
+except ImportError:
+    _merge_celebration = None  # type: ignore[assignment]
+    update_effects = None  # type: ignore[assignment]
+    cleanup_expired_effects = None  # type: ignore[assignment]
 
 
 class GameState(enum.Enum):
@@ -109,8 +118,8 @@ class InputHandler:
         key: int,
         state: GameState,
         session: GameSession,
-        animation_manager: object | None,
-    ) -> dict[str, object] | None:
+        animation_manager: Any | None,
+    ) -> dict[str, Any] | None:
         """Dispatch a KEYDOWN event to the appropriate game action.
 
         Args:
@@ -127,8 +136,15 @@ class InputHandler:
             {"action": "new_game", "new_state": GameState.IDLE}
         """
         # Phase 1: Arrow key handling (move)
-        if key in InputHandler.KEY_DIRECTION_MAP:
-            direction = InputHandler.KEY_DIRECTION_MAP[key]
+        # Support both integer pygame key constants and Direction enum values
+        # (the latter used in tests and programmatic dispatch)
+        direction = InputHandler.KEY_DIRECTION_MAP.get(key)
+        if direction is None and isinstance(key, str):
+            try:
+                direction = Direction(key)
+            except ValueError:
+                direction = None
+        if direction is not None:
 
             if state not in (GameState.IDLE, GameState.PLAYING):
                 return None
@@ -172,7 +188,7 @@ class InputHandler:
     def handle_mouse_click(
         pos: tuple[int, int],
         state: GameState,
-        renderer: object,
+        renderer: Any,
     ) -> bool:
         """Check if a mouse click hits the new-game button during GAME_OVER/WIN.
 
@@ -301,8 +317,9 @@ class GameWindow:
                 cell_size=162,
             )
         else:
-            self._animation_manager = None  # type: ignore[assignment]
+            self._animation_manager = None
         self._toast_manager = ToastManager() if ToastManager is not None else None
+        self._celebration_effects: list[Any] = []
         self._last_dt: float = 0.0
 
     @property
@@ -426,6 +443,16 @@ class GameWindow:
                 if new_achievements and self._toast_manager is not None:
                     for ach in new_achievements:
                         self._toast_manager.show(ach.name, ach.description)
+                # Create celebration effects for merged tiles
+                if _merge_celebration is not None:
+                    for tile_move in result["tile_moves"]:
+                        if tile_move.merged:
+                            effect = _merge_celebration.create_effect(
+                                tile_move.dest_row,
+                                tile_move.dest_col,
+                                tile_move.value,
+                            )
+                            self._celebration_effects.append(effect)
 
         # Apply new_game action
         if action == "new_game":
@@ -433,6 +460,7 @@ class GameWindow:
                 self._state = result["new_state"]
             if self._toast_manager is not None:
                 self._toast_manager.clear()
+            self._celebration_effects = []
 
     def _handle_mouse_click(self, pos: tuple[int, int]) -> None:
         """Detect new-game button click during GAME_OVER or WIN states.
@@ -454,6 +482,7 @@ class GameWindow:
             self._state = GameState.IDLE
             if self._toast_manager is not None:
                 self._toast_manager.clear()
+            self._celebration_effects = []
 
     def _check_win_condition(self) -> None:
         """Thin wrapper: delegates to StateManager.check_win_condition()."""
@@ -481,7 +510,19 @@ class GameWindow:
                         if offset != (0.0, 0.0):
                             active_moves[(row, col)] = offset
 
-            self._renderer.render(self._screen, self._session, active_moves=active_moves)
+            # Update celebration effects
+            dt_ms = self._last_dt * 1000.0
+            if update_effects is not None:
+                update_effects(self._celebration_effects, dt_ms)
+            if cleanup_expired_effects is not None:
+                cleanup_expired_effects(self._celebration_effects)
+
+            self._renderer.render(
+                self._screen,
+                self._session,
+                active_moves=active_moves,
+                celebration_effects=self._celebration_effects,
+            )
 
             if self._state == GameState.GAME_OVER:
                 try:
