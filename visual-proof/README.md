@@ -5,11 +5,11 @@ This directory contains visual evidence spanning Phase 1 (framework spikes), Pha
 is documented with its input sequence and acceptance criteria coverage. This manifest
 serves as the authoritative record of visual proof for the project.
 
-**Total screenshots**: 9 PNG files across 3 project phases.
+**Total screenshots**: 10 PNG files across 3 project phases.
 
 Contents: first_light.png, framework_spike.png, pyinstaller_spike.png, phase4_feedback.png,
 phase4_after_move.png, phase4_after_right.png, phase4_initial.png, phase4_initial_check.png,
-phase4_mid_game.png — plus 5 helper scripts and this README.
+phase4_mid_game.png, phase4_game_over.png — plus 5 helper scripts and this README.
 
 ## 1. Visual-Proof Directory
 
@@ -26,6 +26,7 @@ phase4_mid_game.png — plus 5 helper scripts and this README.
 | phase4_initial.png | Phase 4 | Initial game launch with standard window chrome visible and clean fresh board | Game launched via poetry run python -m src.main, captured immediately on first frame | AC-6 |
 | phase4_initial_check.png | Phase 4 | Initial board state verification showing correct tile placement and layout on startup | Game launched and captured for startup verification against expected initial state | AC-6 |
 | phase4_mid_game.png | Phase 4 | Mid-game state with multiple tiles on board, mascot expression indicating activity, and non-trivial scoring | Multiple arrow key moves executed to reach a mid-game board state with diverse tile values | AC-3, AC-5 |
+| phase4_game_over.png | Phase 4 | Game-over state with full 4×4 board, overlay visible, score display, and new-game button | Deterministic programmatic capture via capture_game_over.py — no player input | AC-7, AC-4, AC-5 |
 
 ### Helper Scripts
 
@@ -73,6 +74,7 @@ The following additional screenshots document Phase 4 feedback integration:
 - **phase4_initial.png**: Game launch with correct 700×800 window (AC-6)
 - **phase4_initial_check.png**: Startup verification of initial board state (AC-6)
 - **phase4_mid_game.png**: Mid-game with active HUD and multiple tile types (AC-3, AC-5)
+- **phase4_game_over.png**: Game-over state with full board, overlay, score, and new-game button (AC-7, AC-4, AC-5)
 
 ## 3. Game Controls
 
@@ -154,8 +156,8 @@ All 8 Phase 4 acceptance criteria verified as PASS.
 | AC-7 | Game Over and Win overlays display when conditions met | PASS | phase4_feedback.png shows overlay rendering; code inspection confirms game-over path |
 | AC-8 | pytest passes with 0 failures | PASS | Full suite: 412 tests, 0 failures |
 
-Note: phase4_game_over.png was planned for capture but was not produced during Task 1.
-AC-7 is verified through code inspection and the feedback screenshot. See Known Limitations.
+Note: phase4_game_over.png is now captured via the deterministic capture script (capture_game_over.py).
+AC-7 is verified through the game-over screenshot and code inspection.
 
 ## 7. Known Limitations
 
@@ -165,7 +167,6 @@ AC-7 is verified through code inspection and the feedback screenshot. See Known 
 - Grid hardcoded to 4×4 (operator directive DR-004)
 - No CI/CD or cross-platform packaging (deferred to Phase 6)
 - **TD-007 deferred**: Private member access pattern in save/load code remains as technical debt — non-functional, code quality only
-- **phase4_game_over.png not captured**: Sprint plan listed this as a T1 deliverable, but Task 1 did not produce it. AC-7 is verified through phase4_feedback.png and code inspection. A dedicated game-over state screenshot should be captured in a future phase
 - **Scout C78 observation**: Score text positioning overlaps slightly with character art on overlays — cosmetic issue, tracked for resolution
 
 ## 8. Architecture Summary
