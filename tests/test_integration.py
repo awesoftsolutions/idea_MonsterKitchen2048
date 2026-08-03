@@ -170,8 +170,14 @@ def test_twist_contamination_end_to_end() -> None:
 
     # Execute moves, stopping if game-over
     directions = [
-        Direction.LEFT, Direction.UP, Direction.LEFT, Direction.UP,
-        Direction.RIGHT, Direction.DOWN, Direction.RIGHT, Direction.DOWN,
+        Direction.LEFT,
+        Direction.UP,
+        Direction.LEFT,
+        Direction.UP,
+        Direction.RIGHT,
+        Direction.DOWN,
+        Direction.RIGHT,
+        Direction.DOWN,
     ]
     twist_effects: list[TwistEffect] = []
     for direction in directions:

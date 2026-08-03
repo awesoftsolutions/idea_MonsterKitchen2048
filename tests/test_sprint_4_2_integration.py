@@ -521,9 +521,7 @@ def test_toast_clear_on_new_game() -> None:
     # ToastManager.clear() removes all toasts
     toast_manager.clear()
 
-    assert toast_manager.is_empty is True, (
-        "ToastManager should be empty after clear()"
-    )
+    assert toast_manager.is_empty is True, "ToastManager should be empty after clear()"
     assert toast_manager.get_active() is None, (
         "ToastManager.get_active() should be None after clear()"
     )

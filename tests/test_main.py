@@ -618,7 +618,9 @@ def test_handle_keydown_returns_new_achievements() -> None:
     achievements = result["new_achievements"]
     assert len(achievements) == 2, f"Expected 2 achievements, got {len(achievements)}"  # type: ignore[arg-type]
     names = {achievements[0].name, achievements[1].name}  # type: ignore[index]
-    assert names == {"First Bite", "Cupcake Collector"}, f"Unexpected achievement names: {names}"
+    assert names == {"First Bite", "Cupcake Collector"}, (
+        f"Unexpected achievement names: {names}"
+    )
 
 
 def test_game_window_creates_toast_manager(window: object) -> None:

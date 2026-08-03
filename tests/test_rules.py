@@ -40,9 +40,7 @@ class SimpleBoardExtended:
     inheritance coupling in test stubs.
     """
 
-    def __init__(
-        self, grid: list[list[int]], rotten_overlay: list[list[int]]
-    ) -> None:
+    def __init__(self, grid: list[list[int]], rotten_overlay: list[list[int]]) -> None:
         self.grid = grid
         self._rotten_overlay = rotten_overlay
 
@@ -894,7 +892,9 @@ def test_overlay_is_readonly() -> None:
     snapshot_before = [row[:] for row in board.get_rotten_overlay()]
     rules.is_game_over(board)
     snapshot_after = [row[:] for row in board.get_rotten_overlay()]
-    assert snapshot_before == snapshot_after, "overlay mutated by is_game_over (all zeros)"
+    assert snapshot_before == snapshot_after, (
+        "overlay mutated by is_game_over (all zeros)"
+    )
 
     # Case 2: non-zero overlay
     overlay_rotten = [[0] * 4 for _ in range(4)]
@@ -905,7 +905,9 @@ def test_overlay_is_readonly() -> None:
     snapshot_before2 = [row[:] for row in board2.get_rotten_overlay()]
     rules.is_game_over(board2)
     snapshot_after2 = [row[:] for row in board2.get_rotten_overlay()]
-    assert snapshot_before2 == snapshot_after2, "overlay mutated by is_game_over (non-zero)"
+    assert snapshot_before2 == snapshot_after2, (
+        "overlay mutated by is_game_over (non-zero)"
+    )
 
 
 def test_rescueable_pair_with_various_countdowns() -> None:

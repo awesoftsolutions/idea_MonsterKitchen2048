@@ -189,11 +189,15 @@ def test_celebration_effects_created_for_merged_moves(
         mock_create_effect.assert_called_once()
         call_kwargs = mock_create_effect.call_args
         # Support both positional and keyword arg patterns
-        actual_row = call_kwargs.kwargs.get("dest_row") or call_kwargs.kwargs.get("row") or (
-            call_kwargs.args[0] if call_kwargs.args else None
+        actual_row = (
+            call_kwargs.kwargs.get("dest_row")
+            or call_kwargs.kwargs.get("row")
+            or (call_kwargs.args[0] if call_kwargs.args else None)
         )
-        actual_col = call_kwargs.kwargs.get("dest_col") or call_kwargs.kwargs.get("col") or (
-            call_kwargs.args[1] if len(call_kwargs.args) > 1 else None
+        actual_col = (
+            call_kwargs.kwargs.get("dest_col")
+            or call_kwargs.kwargs.get("col")
+            or (call_kwargs.args[1] if len(call_kwargs.args) > 1 else None)
         )
         actual_value = call_kwargs.kwargs.get("value") or (
             call_kwargs.args[2] if len(call_kwargs.args) > 2 else None

@@ -18,7 +18,9 @@ Contract:
 
 from pathlib import Path
 
-SCREENSHOT_PATH = Path(__file__).resolve().parent.parent / "visual-proof" / "first_light.png"
+SCREENSHOT_PATH = (
+    Path(__file__).resolve().parent.parent / "visual-proof" / "first_light.png"
+)
 
 
 def test_first_light_screenshot_exists():

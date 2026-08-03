@@ -128,12 +128,18 @@ class Rules:
 
                 # Check right neighbor
                 if col + 1 < GRID_SIZE:
-                    if overlay[row][col + 1] > 0 and grid[row][col] == grid[row][col + 1]:
+                    if (
+                        overlay[row][col + 1] > 0
+                        and grid[row][col] == grid[row][col + 1]
+                    ):
                         return True
 
                 # Check down neighbor
                 if row + 1 < GRID_SIZE:
-                    if overlay[row + 1][col] > 0 and grid[row][col] == grid[row + 1][col]:
+                    if (
+                        overlay[row + 1][col] > 0
+                        and grid[row][col] == grid[row + 1][col]
+                    ):
                         return True
 
         return False

@@ -19,10 +19,30 @@ from src.core.board import BoardState
 
 EMPTY_GRID: list[list[int]] = [[0] * 4 for _ in range(4)]
 FULL_GRID: list[list[int]] = [[2] * 4 for _ in range(4)]
-GRID_WITH_32: list[list[int]] = [[32, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-GRID_WITH_256: list[list[int]] = [[256, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-GRID_WITH_1024: list[list[int]] = [[1024, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-GRID_WITH_2048: list[list[int]] = [[2048, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+GRID_WITH_32: list[list[int]] = [
+    [32, 2, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+]
+GRID_WITH_256: list[list[int]] = [
+    [256, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+]
+GRID_WITH_1024: list[list[int]] = [
+    [1024, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+]
+GRID_WITH_2048: list[list[int]] = [
+    [2048, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+]
 
 
 def make_board_state(
@@ -31,7 +51,9 @@ def make_board_state(
     moves: int = 0,
 ) -> BoardState:
     """Factory for BoardState with safe defaults."""
-    return BoardState(grid=grid or [row[:] for row in EMPTY_GRID], score=score, moves=moves)
+    return BoardState(
+        grid=grid or [row[:] for row in EMPTY_GRID], score=score, moves=moves
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +63,10 @@ def make_board_state(
 
 def test_import_achievements():
     """AC-1/AC-13: Achievements and Achievement are importable from src.core."""
-    from src.core import Achievements as CoreAchievements, Achievement as CoreAchievement
+    from src.core import (
+        Achievements as CoreAchievements,
+        Achievement as CoreAchievement,
+    )
 
     assert inspect.isclass(CoreAchievements), "Achievements should be a class"
     assert inspect.isclass(CoreAchievement), "Achievement should be a dataclass"
@@ -65,7 +90,9 @@ def test_no_achievements_on_empty_state():
 def test_first_merge_unlocks_ach01():
     """AC-3/AC-9: ACH-01 unlocks when score > 0."""
     ach = Achievements()
-    bs = make_board_state(grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], score=4, moves=1)
+    bs = make_board_state(
+        grid=[[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], score=4, moves=1
+    )
     result = ach.evaluate(bs, move_count=1, score=4, rotten_positions=[])
     ids = [r.id for r in result]
     assert "ACH-01" in ids, f"ACH-01 not in results: {ids}"
@@ -107,7 +134,9 @@ def test_rotten_cleared_unlocks_ach05():
     ach = Achievements()
     bs = make_board_state(score=100, moves=5)
     # Call 1: 2 rotten present — no achievement yet
-    result1 = ach.evaluate(bs, move_count=5, score=100, rotten_positions=[(0, 0), (1, 1)])
+    result1 = ach.evaluate(
+        bs, move_count=5, score=100, rotten_positions=[(0, 0), (1, 1)]
+    )
     assert "ACH-05" not in [r.id for r in result1]
     # Call 2: both cleared — ACH-05 should unlock
     result2 = ach.evaluate(bs, move_count=5, score=100, rotten_positions=[])
@@ -129,7 +158,9 @@ def test_10_rotten_cleared_unlocks_ach06():
         ach.evaluate(bs, move_count=2 + i, score=0, rotten_positions=remaining)
 
     # ACH-06 should be unlocked by now
-    assert "ACH-06" in ach.to_dict()["unlocked"], "ACH-06 should be unlocked after 10 cleared"
+    assert "ACH-06" in ach.to_dict()["unlocked"], (
+        "ACH-06 should be unlocked after 10 cleared"
+    )
     # The last call or one of the calls should have returned ACH-06
     # Verify it's in unlocked; the specific return may have been an earlier call
 
@@ -212,7 +243,9 @@ def test_no_duplicate_unlocks():
 def test_12_achievements_defined():
     """AC-9: Exactly 12 unique achievement IDs exist across definitions and inline checks."""
     ids_in_definitions = {d.id for d in _ACHIEVEMENT_DEFINITIONS}
-    assert len(ids_in_definitions) == 8, f"Expected 8 definitions, got {len(ids_in_definitions)}"
+    assert len(ids_in_definitions) == 8, (
+        f"Expected 8 definitions, got {len(ids_in_definitions)}"
+    )
 
     inline_ids = {"ACH-05", "ACH-06", "ACH-11", "ACH-12"}
     assert len(inline_ids) == 4

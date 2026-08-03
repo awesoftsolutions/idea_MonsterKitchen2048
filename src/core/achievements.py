@@ -125,10 +125,10 @@ _ACHIEVEMENT_DEFINITIONS: list[_AchievementDefinition] = [
         name="Cupcake Collector",
         description="Reach tile value 32",
         icon="cupcake_collector",
-        condition=lambda board_state, move_count, score, rotten_positions: _get_max_tile(
-            board_state.grid
-        )
-        >= 32,
+        condition=lambda board_state,
+        move_count,
+        score,
+        rotten_positions: _get_max_tile(board_state.grid) >= 32,
     ),
     # ACH-03 — Cake Master
     _AchievementDefinition(
@@ -136,10 +136,10 @@ _ACHIEVEMENT_DEFINITIONS: list[_AchievementDefinition] = [
         name="Cake Master",
         description="Reach tile value 256",
         icon="cake_master",
-        condition=lambda board_state, move_count, score, rotten_positions: _get_max_tile(
-            board_state.grid
-        )
-        >= 256,
+        condition=lambda board_state,
+        move_count,
+        score,
+        rotten_positions: _get_max_tile(board_state.grid) >= 256,
     ),
     # ACH-04 — Wedding Planner
     _AchievementDefinition(
@@ -147,10 +147,10 @@ _ACHIEVEMENT_DEFINITIONS: list[_AchievementDefinition] = [
         name="Wedding Planner",
         description="Reach tile value 1024",
         icon="wedding_planner",
-        condition=lambda board_state, move_count, score, rotten_positions: _get_max_tile(
-            board_state.grid
-        )
-        >= 1024,
+        condition=lambda board_state,
+        move_count,
+        score,
+        rotten_positions: _get_max_tile(board_state.grid) >= 1024,
     ),
     # ACH-07 — Speed Chef
     _AchievementDefinition(
@@ -167,7 +167,8 @@ _ACHIEVEMENT_DEFINITIONS: list[_AchievementDefinition] = [
         name="Marathon Cook",
         description="Survive 100 moves",
         icon="marathon_cook",
-        condition=lambda board_state, move_count, score, rotten_positions: move_count >= 100,
+        condition=lambda board_state, move_count, score, rotten_positions: move_count
+        >= 100,
     ),
     # ACH-09 — Score King
     _AchievementDefinition(
@@ -175,7 +176,8 @@ _ACHIEVEMENT_DEFINITIONS: list[_AchievementDefinition] = [
         name="Score King",
         description="Reach score 10000",
         icon="score_king",
-        condition=lambda board_state, move_count, score, rotten_positions: score >= 10000,
+        condition=lambda board_state, move_count, score, rotten_positions: score
+        >= 10000,
     ),
     # ACH-10 — Full Kitchen
     _AchievementDefinition(
@@ -269,9 +271,13 @@ class Achievements:
         # Update tracking state based on delta from previous count
         if current_rotten_count < self._previous_rotten_count:
             self._ever_cleared_rotten = True
-            self._cumulative_rotten_cleared += self._previous_rotten_count - current_rotten_count
+            self._cumulative_rotten_cleared += (
+                self._previous_rotten_count - current_rotten_count
+            )
         elif current_rotten_count > self._previous_rotten_count:
-            self._cumulative_contaminated += current_rotten_count - self._previous_rotten_count
+            self._cumulative_contaminated += (
+                current_rotten_count - self._previous_rotten_count
+            )
 
         self._previous_rotten_count = current_rotten_count
 

@@ -188,15 +188,9 @@ def test_celebration_effects_created_on_merge(
         mock_create_effect.assert_called_once()
         call_args = mock_create_effect.call_args
         # Production code passes positional args: create_effect(dest_row, dest_col, value)
-        assert call_args.args[0] == 1, (
-            f"Expected dest_row=1, got {call_args.args[0]}"
-        )
-        assert call_args.args[1] == 2, (
-            f"Expected dest_col=2, got {call_args.args[1]}"
-        )
-        assert call_args.args[2] == 4, (
-            f"Expected value=4, got {call_args.args[2]}"
-        )
+        assert call_args.args[0] == 1, f"Expected dest_row=1, got {call_args.args[0]}"
+        assert call_args.args[1] == 2, f"Expected dest_col=2, got {call_args.args[1]}"
+        assert call_args.args[2] == 4, f"Expected value=4, got {call_args.args[2]}"
 
     # The celebration_effects list on the window should contain one effect
     assert hasattr(window, "_celebration_effects"), (

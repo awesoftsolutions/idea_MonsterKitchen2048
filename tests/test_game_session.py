@@ -978,6 +978,7 @@ def test_accessor_type_correctness(session: GameSession) -> None:
 
     assert isinstance(session.can_undo(), bool), "can_undo() should return bool"
 
+
 # ---------------------------------------------------------------------------
 # TileMove Integration Tests (TDD Red Phase — TileMove does NOT exist yet)
 # ---------------------------------------------------------------------------
@@ -1002,9 +1003,9 @@ def test_move_returns_tile_moves(session: GameSession) -> None:
     assert result.moved is True
     assert isinstance(result.tile_moves, list)
     assert len(result.tile_moves) > 0, "tile_moves should be non-empty after a merge"
-    assert all(
-        isinstance(m, TileMove) for m in result.tile_moves
-    ), "All entries must be TileMove instances"
+    assert all(isinstance(m, TileMove) for m in result.tile_moves), (
+        "All entries must be TileMove instances"
+    )
     assert all(
         hasattr(m, "source_row") and hasattr(m, "dest_row") and hasattr(m, "value")
         for m in result.tile_moves
