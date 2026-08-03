@@ -6,6 +6,22 @@ A fun **2048 puzzle game** with a cute food-and-monster twist! Slide tiles on a 
 
 Built with [pygame-ce](https://pyga.me/) and Python. Designed to be fun for kids and parents alike.
 
+## Why Monster Kitchen?
+
+The classic 2048 is a number-sliding puzzle. Monster Kitchen keeps the core merge mechanic but wraps it in a colorful kitchen world where tiles are cute food items made by little monster chefs. Instead of chasing abstract numbers, you evolve a tiny blueberry into a magnificent chef's masterpiece cake.
+
+The twist introduces **Rotten Food contamination** — every few moves a gross (but funny!) rotten tile appears with a 3-turn countdown. If you do not merge it away in time, it spreads and contaminates a neighbour tile. This forces defensive play: you cannot just chase high scores, you must actively manage rotten tiles or the board fills with unusable garbage.
+
+**Why food instead of numbers?**
+- Numbers are abstract; food items are immediate and visual — a 8-year-old knows what a blueberry is
+- The merge chain (blueberry → cupcake → pie → cake → mega-cake) tells a story
+- Rotten Food adds a "keep your kitchen clean" tension that pure 2048 lacks
+
+**What was rejected:**
+- A sci-fi theme (too abstract for the target audience)
+- A purely cosmetic re-skin with no mechanic change (would not justify a "twist")
+- Making the grid larger than 4×4 (the SOW locks the grid to 4×4)
+
 ## Features
 
 - **Classic 2048 gameplay** — slide tiles up, down, left, or right; matching tiles merge into the next tier
@@ -46,16 +62,6 @@ poetry run python -m src.main
 | **Escape** | Quit |
 | **Mouse click** | Press on-screen buttons |
 
-## Building a Standalone Executable
-
-Create a single-file executable that runs without Python installed:
-
-```bash
-poetry run pyinstaller the2048.spec
-```
-
-The built executable appears in the `dist/` directory.
-
 ## Running Tests
 
 ```bash
@@ -64,36 +70,81 @@ poetry run pytest
 
 The test suite covers the core game logic (slide/merge mechanics, scoring, rotten food contamination, achievements) and runs in CI on Python 3.11, 3.12, and 3.13.
 
-## Development — Project Structure
+## Building a Standalone Executable
+
+Create a single-file executable that runs without Python installed:
+
+**Windows:**
+
+```bash
+poetry run python scripts/build.py
+```
+
+**macOS / Linux:**
+
+```bash
+poetry run python scripts/build.py
+```
+
+The built executable appears in the `dist/` directory (`the2048.exe` on Windows, `the2048` on macOS/Linux).
+
+To force a clean rebuild:
+
+```bash
+poetry run python scripts/build.py --clean
+```
+
+> **Note:** The build script uses the `the2048.spec` PyInstaller configuration, which bundles all 24 game assets (tile sprites, UI elements, mascot) into a single-file executable and sets up a runtime hook so the game can find its assets after extraction.
+
+## Technology Stack
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Python | ^3.11 (tested 3.11, 3.12, 3.13) | Runtime language |
+| pygame-ce | ^2.5 | Game engine (community edition of pygame) |
+| Poetry | Latest | Dependency management & virtual environments |
+| pytest | ^9.1.1 | Test runner |
+| pytest-cov | ^7.1.0 | Test coverage reporting |
+| PyInstaller | ^6.21.0 | Standalone binary packaging |
+
+## Project Structure
 
 ```
-├── src/                    # Game source code
-│   ├── core/               # Game logic (board, scoring, achievements)
-│   │   ├── board.py        #   4×4 grid state, slide & merge
-│   │   ├── score.py        #   Score tracking
-│   │   ├── level.py        #   Level progression
-│   │   ├── direction.py    #   Direction enum & normalization
-│   │   ├── twists.py       #   Rotten Food contamination logic
-│   │   └── achievements.py #   Achievement definitions & tracking
-│   ├── render/             # Pygame rendering & UI
-│   │   ├── main_renderer.py#   Central renderer
-│   │   ├── grid_view.py    #   Grid tile drawing
-│   │   ├── animations.py   #   Tile animation engine
-│   │   ├── ui.py           #   Score bar, buttons, overlays
-│   │   ├── theming.py      #   Visual theme config
-│   │   ├── colors.py       #   Color palette (RGBA)
-│   │   └── sprites.py      #   Sprite loading
-│   ├── main.py             # Entry point — starts the game
-│   ├── constants.py        #   Window size, grid layout, tile size
-│   └── __main__.py         #   python -m src support
-├── tests/                  # Test suite (pytest)
-├── assets/                 # Game art: tiles, mascot, UI elements
-├── docs/                   # Design documents and exploration records
-├── .github/workflows/      # CI pipeline (lint + tests)
-├── pyproject.toml          # Project config & dependencies
+├── src/                        # Game source code
+│   ├── core/                   # Pure Python game logic (no pygame imports)
+│   │   ├── board.py            #   4×4 grid state, slide & merge
+│   │   ├── rules.py            #   Game rules & valid-move detection
+│   │   ├── score.py            #   Score tracking
+│   │   ├── achievements.py     #   Achievement definitions & tracking
+│   │   ├── game_session.py     #   Read-only session facade for renderer
+│   │   ├── history.py          #   Undo state stack
+│   │   └── twist.py            #   Rotten Food contamination logic
+│   ├── render/                 # Pygame rendering pipeline
+│   │   ├── renderer.py         #   Central renderer (BoardRenderer)
+│   │   ├── animation.py        #   Tile slide/merge animations
+│   │   ├── animation_manager.py#   Animation orchestration
+│   │   ├── asset_loader.py     #   PNG asset loading from assets/
+│   │   ├── layout.py           #   Board layout & coordinate mapping
+│   │   ├── merge_celebration.py#   Merge glow effects
+│   │   └── toast_manager.py    #   Achievement toast popups
+│   ├── main.py                 # Entry point — starts the game
+│   └── __main__.py             # python -m src support
+├── tests/                      # Test suite (422+ tests, pytest)
+├── assets/                     # Game art: tiles, mascot, UI elements
+│   ├── tiles/                  #   13 tile sprites (blueberry → mega-cake + rotten)
+│   ├── ui/                     #   8 UI elements (board bg, score card, overlays)
+│   └── mascot/                 #   3 mascot expressions (idle, happy, worried)
+├── scripts/                    # Build & utility scripts
+│   ├── build.py                #   PyInstaller build wrapper
+│   └── runtime_hook.py         #   Runtime hook for --onefile asset resolution
+├── .github/workflows/          # CI pipeline
+│   └── ci.yml                  #   GitHub Actions: pytest on Python 3.11, 3.12, 3.13
+├── visual-proof/               # Visual verification artifacts
+├── the2048.spec                # PyInstaller configuration
+├── pyproject.toml              # Project config & dependencies
 └── LICENSE
 ```
 
 ## License
 
-See [LICENSE](LICENSE) file for details.
+See the [LICENSE](LICENSE) file for details.
