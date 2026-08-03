@@ -2,148 +2,98 @@
 
 [![CI](https://github.com/Favur/the2048/actions/workflows/ci.yml/badge.svg)](https://github.com/Favur/the2048/actions/workflows/ci.yml)
 
-A 2048 puzzle game with a **Monster Kitchen** creative twist — a colorful kitchen/food world where tiles are cute food items crafted by little monster chefs.
+A fun **2048 puzzle game** with a cute food-and-monster twist! Slide tiles on a 4×4 board, merge matching food items into bigger recipes, and try to reach the legendary **2048 cake** — but watch out for Rotten Food that tries to spoil your kitchen!
 
-## Monster Kitchen Twist
+Built with [pygame-ce](https://pyga.me/) and Python. Designed to be fun for kids and parents alike.
 
-The2048 is a twist on the classic 2048 sliding-tile puzzle. The board is a **4×4 grid** where tiles represent cute food items that grow in elaboration as values increase — starting with a simple blueberry (value 2) and culminating in a legendary chef's masterpiece cake (value 2048). The visual identity is **Kawaii meets Cooking Mama**: bright pastels, rounded shapes, thick outlines, and friendly monster chef characters.
+## Features
 
-### Rotten Food Contamination
+- **Classic 2048 gameplay** — slide tiles up, down, left, or right; matching tiles merge into the next tier
+- **11 food tiers** — evolve from a tiny blueberry (2) all the way up to a magnificent chef's masterpiece cake (2048)
+- **Rotten Food contamination** — every few moves a gross rotten tile appears on the board with a countdown timer. If you do not merge it away in time, it spreads and contaminates a neighbour! Keep your kitchen clean!
+- **Achievements** — unlock badges for reaching milestones and pulling off clever moves
+- **Undo & restart** — made a mistake? Press Z to undo. Want a fresh start? Press Space for a new game
+- **Score tracking** — your current score and best score are always visible
 
-The core tension mechanic is **Rotten Food contamination**. Rotten Food tiles spawn randomly on the board every 3–5 moves. Each rotten tile carries a **3-turn countdown**. If a rotten tile is not merged away before the countdown expires, it **contaminates one adjacent tile**, converting it into a new rotten tile with its own countdown. Players must actively manage the board to prevent contamination chains from filling the grid with unusable garbage.
+## Installation
 
-This creates genuine defensive pressure — the player cannot simply chase high scores but must allocate moves to sanitizing rotten tiles, producing a **dual-objective gameplay loop** (score optimization + contamination management) that does not exist in standard 2048.
-
-### Why Monster Kitchen
-
-| Criterion | Result |
-|-----------|--------|
-| preserves_core | ✅ Standard slide-and-merge on 4×4 grid, one-merge-per-tile enforced |
-| adds_tension | ✅ Rotten food countdown creates urgency; contamination spread forces defensive moves |
-| has_unconventional | ✅ Contamination spread as a board-degradation mechanic is not found in standard puzzle games |
-| has_identity | ✅ Kawaii/Cooking Mama kitchen theme with food tiles, monster chefs, and kitchen-themed UI |
-
-**Rationale**: The contamination mechanic creates a genuine dual-objective loop (score + defense) that satisfies all four SOW criteria. The kitchen/food theme provides a cohesive, age-appropriate visual identity. The 4×4 grid tightens the contamination pressure — fewer cells means rotten tiles have more immediate impact. Operator pre-approved.
-
-## Rejected Alternatives
-
-Four additional twist ideas were evaluated against the SOW criteria (preserves core mechanics, adds consistent tension, includes one unconventional mechanic, has clear identity). Each rejected alternative failed at least one criterion. Full exploration details: [`docs/twist-exploration.md`](docs/twist-exploration.md).
-
-### Gravity Collapse
-
-After each player slide, a gravity phase pulls all tiles downward regardless of slide direction. Tiles behave as if they have weight on a physical surface.
-
-**Rejected**: Fails **preserves_core**. In standard 2048, tiles are stationary until the player initiates a slide. Gravity Collapse imposes a constant downward force that moves tiles without player input, changing the core mechanic from player-driven movement only to player input plus automatic physics. This is a different game, not a twist on 2048.
-
-### Elemental Clash
-
-Tiles carry elemental types (fire, water, earth, wind) assigned at spawn. Mismatched elements trigger special reactions (steam burst, sandstorm, lava flow, frost).
-
-**Rejected**: Fails **adds_tension**. The tension derives from randomness, not skill — which elements spawn is unpredictable, so the player cannot develop a meaningful strategy around elemental matchups. Reactions feel like lucky breaks or unfortunate accidents rather than earned strategic decisions.
-
-### Shadow Realm
-
-The board is shrouded in darkness. Tiles start hidden and are revealed only when adjacent to a tile that was just moved or merged, fading back into shadow after 3 turns.
-
-**Rejected**: Fails **has_identity**. Shadow Realm requires visual obscurity (darkness, hidden tiles) as its core mechanic, which directly undermines the ability to create a clear, joyful visual identity. You cannot express distinct tile values when tiles are hidden. The mechanic sacrifices the game's visual reward loop for cognitive challenge.
-
-### Mirror Duel
-
-Two 4×4 boards displayed side by side. Every slide executes on both boards simultaneously in the same direction. New tiles spawn independently on each board.
-
-**Rejected**: Fails **adds_tension**. Mirror Duel does not introduce a new type of tension. It duplicates existing 2048 decisions across two parallel boards — the same choices on both boards with no new mechanic connecting them. This is multiplication of existing tension, not introduction of new tension.
-
-## Phase 1 Research Findings
-
-### Framework Validation
-
-- **pygame-ce 2.5.x** confirmed working: window opens at 700×800 with title "Favur 2048", draws colored primitives, screenshot captured to `visual-proof/`
-- Zero compatibility issues found with Python 3.13.14
-- Window event loop runs cleanly with Escape-to-quit
-
-### Packaging Validation
-
-- **PyInstaller 6.21.0** confirmed packaging in `--onefile` mode
-- Standalone binary builds and launches successfully on Windows 11
-- No pygame-ce hidden-imports or custom hooks required for basic builds
-- Build artifacts (`dist/`, `build/`, `*.spec`) are gitignored
-
-### Slide/Merge Algorithm
-
-- Pure-Python `slide_merge(grid, direction)` function validated against ≥6 hand-worked board states
-- **Row-based approach with direction normalization**: LEFT/RIGHT process rows directly; UP/DOWN transpose, process as LEFT, transpose back
-- One-merge-per-tile enforced: `[2, 2, 2, 0]` sliding LEFT → `[4, 2, 0, 0]`, not `[8, 0, 0, 0]`
-- Grid representation: `list[list[int]]` — grid-agnostic, no numpy dependency
-- Zero pygame or display imports — fully importable for headless testing
-
-## Technology Stack
-
-| Component | Version | Purpose |
-|-----------|---------|---------|
-| Python | ≥3.11 | Runtime |
-| pygame-ce | ≥2.5 | Game framework (windowing, rendering, events) |
-| Poetry | — | Dependency management and build |
-| PyInstaller | ≥6.21.0 | Standalone binary packaging (dev dependency) |
-| pytest | ≥9.1.1 | Test runner (dev dependency, formal test suite in Phase 2) |
-
-## Getting Started
-
-### Installation
+You need **Python 3.11 or newer** and [Poetry](https://python-poetry.org/) installed on your computer.
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/Favur/the2048.git
+cd the2048
+
+# 2. Install all dependencies
 poetry install
 ```
 
-### Running the Framework Spike
+## Running the Game
+
+Start the game with one command:
 
 ```bash
-poetry run python spikes/framework_spike.py
+poetry run python -m src.main
 ```
 
-Opens a 700×800 window titled "Favur 2048" with a colored rectangle. Press Escape or close the window to exit.
+### Controls
 
-### Building the Standalone Binary
+| Key | Action |
+|-----|--------|
+| **Arrow keys** | Slide tiles (up, down, left, right) |
+| **Z** | Undo last move |
+| **Space** | Start a new game |
+| **Escape** | Quit |
+| **Mouse click** | Press on-screen buttons |
+
+## Building a Standalone Executable
+
+Create a single-file executable that runs without Python installed:
 
 ```bash
-poetry run pyinstaller --onefile spikes/framework_spike.py
+poetry run pyinstaller the2048.spec
 ```
 
-Produces `dist/framework_spike.exe`. Run the binary directly to launch the game window.
+The built executable appears in the `dist/` directory.
 
-### Running the Slide/Merge Validation
+## Running Tests
 
 ```bash
-poetry run python spikes/test_validation.py
+poetry run pytest
 ```
 
-Validates the slide/merge algorithm against hand-worked board states. Exits with code 0 on all pass.
+The test suite covers the core game logic (slide/merge mechanics, scoring, rotten food contamination, achievements) and runs in CI on Python 3.11, 3.12, and 3.13.
 
-## Project Structure
+## Development — Project Structure
 
 ```
-├── spikes/                 # Research and validation scripts
-│   ├── framework_spike.py        # pygame-ce window spike
-│   ├── slide_merge.py            # Pure-Python slide/merge algorithm
-│   ├── slide_merge_demo.py       # Interactive console demo
-│   ├── test_validation.py        # Standalone validation script
-│   ├── test_pyinstaller_build.py # PyInstaller build validation
-│   ├── verify_constraint_compliance.py # Phase 1 constraint verification
-│   └── verify_scaffold.py        # Scaffold verification
-├── visual-proof/           # Screenshots and visual evidence
-├── docs/                   # Project documentation
-│   └── twist-exploration.md # Twist exploration record
-├── pyproject.toml          # Poetry project configuration
-└── README.md               # This file
+├── src/                    # Game source code
+│   ├── core/               # Game logic (board, scoring, achievements)
+│   │   ├── board.py        #   4×4 grid state, slide & merge
+│   │   ├── score.py        #   Score tracking
+│   │   ├── level.py        #   Level progression
+│   │   ├── direction.py    #   Direction enum & normalization
+│   │   ├── twists.py       #   Rotten Food contamination logic
+│   │   └── achievements.py #   Achievement definitions & tracking
+│   ├── render/             # Pygame rendering & UI
+│   │   ├── main_renderer.py#   Central renderer
+│   │   ├── grid_view.py    #   Grid tile drawing
+│   │   ├── animations.py   #   Tile animation engine
+│   │   ├── ui.py           #   Score bar, buttons, overlays
+│   │   ├── theming.py      #   Visual theme config
+│   │   ├── colors.py       #   Color palette (RGBA)
+│   │   └── sprites.py      #   Sprite loading
+│   ├── main.py             # Entry point — starts the game
+│   ├── constants.py        #   Window size, grid layout, tile size
+│   └── __main__.py         #   python -m src support
+├── tests/                  # Test suite (pytest)
+├── assets/                 # Game art: tiles, mascot, UI elements
+├── docs/                   # Design documents and exploration records
+├── .github/workflows/      # CI pipeline (lint + tests)
+├── pyproject.toml          # Project config & dependencies
+└── LICENSE
 ```
-
-## Phase 2 Handoff Notes
-
-- **Algorithm adoption**: `slide_merge()` in `spikes/slide_merge.py` is validated and ready for adoption into the production board module (Phase 2). Same interface (`grid: list[list[int]], direction: Direction -> SlideResult`), same row-based approach.
-- **Grid size**: The algorithm is grid-agnostic. Monster Kitchen uses a 4×4 grid (operator decision, overriding SOW's 5×5). Phase 2 implements `Board` with `size=4`.
-- **Twist implementation**: The Rotten Food contamination mechanic spawns rotten tiles every 3–5 moves with a 3-turn countdown. When countdown expires, one adjacent tile is contaminated. Merging two identical rotten tiles removes both. Full specification in `docs/twist-exploration.md`.
-- **pygame-ce compatibility**: No issues found. Standard pygame API calls work as documented. No hidden-imports needed for PyInstaller.
-- **Testing approach**: Phase 1 used standalone validation scripts (not pytest). Phase 2 creates formal pytest suites. Hand-worked board states from `spikes/test_validation.py` become seed cases for Phase 2 test modules.
 
 ## License
 
-See LICENSE file for details.
+See [LICENSE](LICENSE) file for details.
