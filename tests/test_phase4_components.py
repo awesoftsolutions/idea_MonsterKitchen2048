@@ -234,3 +234,5 @@ class TestWindowChrome:
             assert "NOFRAME" not in line, (
                 f"pygame.display.set_mode call contains NOFRAME: {line.strip()!r}"
             )
+# CHANGELOG:
+# - Sprint 4 Task 1: Added 15 component verification tests for render-layer modules (renderer, effects, animations, particles, tile_renderer, board_background)

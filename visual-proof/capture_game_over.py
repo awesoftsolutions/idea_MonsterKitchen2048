@@ -369,3 +369,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+# CHANGELOG:
+# - Sprint 4 Remediation: Added deterministic game-over screenshot capture script (pygame offscreen rendering, NOFRAME window, forced board fill)

@@ -101,3 +101,5 @@ def test_readme_has_viewing_instructions() -> None:
         f"README.md is missing viewing instructions: {failures}. "
         f"The manifest must tell users how to view screenshots and reproduce them."
     )
+# CHANGELOG:
+# - Sprint 4 Task 2: Added 3 manifest verification tests for visual-proof README (screenshot existence, viewing instructions, window dimensions)
