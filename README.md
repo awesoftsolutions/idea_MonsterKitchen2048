@@ -1,5 +1,7 @@
 # the2048 — Monster Kitchen 2048
 
+[![CI](https://github.com/Favur/the2048/actions/workflows/ci.yml/badge.svg)](https://github.com/Favur/the2048/actions/workflows/ci.yml)
+
 A 2048 puzzle game with a **Monster Kitchen** creative twist — a colorful kitchen/food world where tiles are cute food items crafted by little monster chefs.
 
 ## Monster Kitchen Twist
