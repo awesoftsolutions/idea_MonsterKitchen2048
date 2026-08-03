@@ -1,18 +1,32 @@
 """Verification tests for visual-proof/README.md manifest completeness.
 
 Confirms that the visual-proof README documents every PNG screenshot file
-in the visual-proof/ directory and contains viewing instructions. These tests
-are part of Sprint 4 Task 2 (Phase 4) and serve as the manifest completeness
-check referenced in the sprint plan's "Tests To Create" section.
+in the visual-proof/ directory and contains accurate AC-to-screenshot
+mappings, false-positive corrections, and viewing instructions. These
+tests are part of Phase 5 Sprint 1 and serve as the manifest
+completeness check referenced in the sprint plan's "Tests To Create"
+section.
 
 Contract:
-    Purpose: Verify manifest completeness for Phase 4 exit criteria.
+    Purpose: Verify manifest completeness for Phase 5 exit criteria.
     System: pytest test runner (discovered via tests/ directory)
     Dependencies: pathlib (stdlib only), re (stdlib only)
     Used-by: pytest discovery, CI pipeline
     Public Interface:
         test_readme_covers_all_pngs() -> None
+        test_readme_covers_all_pngs_has_count() -> None
         test_readme_has_viewing_instructions() -> None
+        test_readme_has_sow_ac_coverage_table() -> None
+        test_readme_covers_all_sow_acs() -> None
+        test_readme_has_corrections_log() -> None
+        test_readme_corrections_are_true_positives() -> None
+        test_readme_no_false_positive_ac_claims() -> None
+        test_readme_ac5_gap_documented() -> None
+        test_readme_screenshot_inventory_complete() -> None
+        test_readme_false_positive_corrections_match() -> None
+        test_sow_ac_coverage_table_ac_count() -> None
+        test_sow_ac_coverage_categories_complete() -> None
+        test_corrections_log_comprehensive() -> None
 """
 
 import re
@@ -102,7 +116,7 @@ def test_readme_has_viewing_instructions() -> None:
         f"The manifest must tell users how to view screenshots and reproduce them."
     )
 # CHANGELOG:
-# - Sprint 5 Task 2: Added 8 manifest verification tests for rewritten README structure (SOW AC table, corrections log, false-positive elimination, field completeness)
+# - Sprint 1 Task 2: Added 8 manifest verification tests for rewritten README structure (SOW AC table, corrections log, false-positive elimination, field completeness)
 # - Sprint 4 Task 2: Added 3 manifest verification tests for visual-proof README (screenshot existence, viewing instructions, window dimensions)
 
 
