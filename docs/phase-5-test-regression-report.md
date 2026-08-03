@@ -470,7 +470,7 @@ No regressions detected. All 412 tests pass with 0 failures.
 Phase 5 documentation-only changes did not affect any test outcomes. The test suite
 covers:
 
-- **29 test files** spanning achievements, animation, asset loading, board logic,
+- **28 test files** spanning achievements, animation, asset loading, board logic,
   game session orchestration, history/undo, input handling, integration, main loop,
   merge celebration, rendering, rules/game-over, scoring, state management, twist
   mechanics, toast notifications, visual proof manifests, and window flags.
@@ -483,19 +483,19 @@ covers:
 | test_animation_integration | 6 | All PASS |
 | test_animation_manager | 10 | All PASS |
 | test_asset_loader | 14 | All PASS |
-| test_board | 23 | All PASS |
+| test_board | 28 | All PASS |
 | test_first_light | 3 | All PASS |
 | test_game_session | 48 | All PASS |
 | test_high001_fix | 5 | All PASS |
-| test_history | 19 | All PASS |
+| test_history | 20 | All PASS |
 | test_input_handler | 12 | All PASS |
 | test_integration | 15 | All PASS |
 | test_main | 28 | All PASS |
 | test_merge_celebration | 10 | All PASS |
-| test_phase4_components | 14 | All PASS |
-| test_render_layout | 19 | All PASS |
-| test_renderer | 32 | All PASS |
-| test_rules | 37 | All PASS |
+| test_phase4_components | 15 | All PASS |
+| test_render_layout | 18 | All PASS |
+| test_renderer | 34 | All PASS |
+| test_rules | 44 | All PASS |
 | test_score | 13 | All PASS |
 | test_sprint_4_2_integration | 6 | All PASS |
 | test_sprint_4_2_rem | 5 | All PASS |
@@ -503,9 +503,9 @@ covers:
 | test_state_manager | 9 | All PASS |
 | test_toast_manager | 9 | All PASS |
 | test_toast_positioning | 2 | All PASS |
-| test_twist | 21 | All PASS |
+| test_twist | 22 | All PASS |
 | test_visual_proof_manifest | 3 | All PASS |
-| test_visual_proof_readme | 7 | All PASS |
+| test_visual_proof_readme | 8 | All PASS |
 | test_window_flags | 2 | All PASS |
 
 ### Comparison with Phase 4 Baseline
