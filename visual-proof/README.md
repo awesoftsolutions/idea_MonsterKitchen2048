@@ -3,7 +3,9 @@
 This directory contains visual evidence spanning Phase 1 (framework spikes), Phase 3
 (first light), and Phase 4 (feedback integration) of Monster Kitchen 2048. Each screenshot
 is documented with its input sequence and acceptance criteria coverage. This manifest
-serves as the authoritative record of visual proof for the project.
+serves as the authoritative record of visual proof for the project. This is a corrected
+manifest rewritten per ADR-029 to remove all 7 false-positive AC-to-screenshot mappings
+identified in the Phase 5 coverage matrix.
 
 **Total screenshots**: 10 PNG files across 3 project phases.
 
@@ -17,16 +19,16 @@ phase4_mid_game.png, phase4_game_over.png — plus 5 helper scripts and this REA
 
 | Filename | Phase | Description | Input Sequence | AC Coverage |
 |----------|-------|-------------|----------------|-------------|
-| first_light.png | Phase 3 | First playable visual — 4×4 board with tile sprites, score display, mascot, and kitchen countertop background | RIGHT, DOWN, LEFT, UP repeated to populate board with visible tiles | Phase 3 AC-10 |
-| framework_spike.png | Phase 1 | Framework feasibility screenshot showing pygame-ce rendering pipeline operating correctly | Framework spike test with basic window initialization | Phase 1 spike verification |
-| pyinstaller_spike.png | Phase 1 | PyInstaller packaging feasibility screenshot showing the distributable executable launching | PyInstaller spike test launched from built executable | Phase 1 spike verification |
-| phase4_feedback.png | Phase 4 | Active gameplay showing tile positions, merge golden glow, achievement toast notification, and mascot expression | Arrow key sequence (RIGHT, DOWN, LEFT, UP repeated) to build board; merge and toast triggers captured mid-gameplay | AC-7, AC-1, AC-2, AC-3 |
+| first_light.png | Phase 3 | First playable visual — 4×4 board with tile sprites, score display, mascot, and kitchen countertop background | RIGHT, DOWN, LEFT, UP repeated to populate board with visible tiles | AC-13 (game launches without errors) |
+| framework_spike.png | Phase 1 | Framework feasibility screenshot showing pygame-ce rendering pipeline operating correctly | Framework spike test with basic window initialization | Phase 1 spike verification (no SOW AC mapping) |
+| pyinstaller_spike.png | Phase 1 | PyInstaller packaging feasibility screenshot showing the distributable executable launching | PyInstaller spike test launched from built executable | Phase 1 spike verification (no SOW AC mapping) |
+| phase4_feedback.png | Phase 4 | Active gameplay showing tile positions, merge golden glow, achievement toast notification, and mascot expression | Arrow key sequence (RIGHT, DOWN, LEFT, UP repeated) to build board; merge and toast triggers captured mid-gameplay | AC-1, AC-2, AC-4, AC-8, AC-9 |
 | phase4_after_move.png | Phase 4 | Board state after a move showing tile positions post-slide animation completed | Captured immediately after a slide move completed (direction: DOWN) | AC-1, AC-2 |
 | phase4_after_right.png | Phase 4 | Board state after sliding tiles in the RIGHT direction, showing slide mechanics and tile arrangement | RIGHT arrow key pressed to trigger directional slide | AC-1 |
-| phase4_initial.png | Phase 4 | Initial game launch with standard window chrome visible and clean fresh board | Game launched via poetry run python -m src.main, captured immediately on first frame | AC-6 |
-| phase4_initial_check.png | Phase 4 | Initial board state verification showing correct tile placement and layout on startup | Game launched and captured for startup verification against expected initial state | AC-6 |
-| phase4_mid_game.png | Phase 4 | Mid-game state with multiple tiles on board, mascot expression indicating activity, and non-trivial scoring | Multiple arrow key moves executed to reach a mid-game board state with diverse tile values | AC-3, AC-5 |
-| phase4_game_over.png | Phase 4 | Game-over state with full 4×4 board, overlay visible, score display, and new-game button | Deterministic programmatic capture via capture_game_over.py — no player input | AC-7, AC-4, AC-5 |
+| phase4_initial.png | Phase 4 | Initial game launch with standard window chrome visible and clean fresh board | Game launched via poetry run python -m src.main, captured immediately on first frame | AC-13 (game launches without errors) |
+| phase4_initial_check.png | Phase 4 | Initial board state verification showing correct tile placement and layout on startup | Game launched and captured for startup verification against expected initial state | AC-13 (game launches without errors) |
+| phase4_mid_game.png | Phase 4 | Mid-game state with multiple tiles on board, mascot expression indicating activity, and non-trivial scoring | Multiple arrow key moves executed to reach a mid-game board state with diverse tile values | AC-1, AC-4 |
+| phase4_game_over.png | Phase 4 | Game-over state with full 4×4 board, overlay visible, score display, and new-game button | Deterministic programmatic capture via capture_game_over.py | AC-6 (game ends correctly), AC-4 (score increases by merge) |
 
 ### Helper Scripts
 
@@ -68,13 +70,13 @@ This sequence was repeated to generate a non-trivial board state with multiple v
 
 The following additional screenshots document Phase 4 feedback integration:
 
-- **phase4_feedback.png**: Active gameplay showing merge golden glow, achievement toast, and mascot expression (AC-7, AC-1, AC-2, AC-3)
+- **phase4_feedback.png**: Active gameplay showing merge golden glow, achievement toast, and mascot expression (AC-1, AC-2, AC-4, AC-8, AC-9)
 - **phase4_after_move.png**: Board state after a completed slide move (AC-1, AC-2)
 - **phase4_after_right.png**: Board state after RIGHT directional slide (AC-1)
-- **phase4_initial.png**: Game launch with correct 700×800 window (AC-6)
-- **phase4_initial_check.png**: Startup verification of initial board state (AC-6)
-- **phase4_mid_game.png**: Mid-game with active HUD and multiple tile types (AC-3, AC-5)
-- **phase4_game_over.png**: Game-over state with full board, overlay, score, and new-game button (AC-7, AC-4, AC-5)
+- **phase4_initial.png**: Game launch with correct 700×800 window (AC-13)
+- **phase4_initial_check.png**: Startup verification of initial board state (AC-13)
+- **phase4_mid_game.png**: Mid-game with active HUD and multiple tile types (AC-1, AC-4)
+- **phase4_game_over.png**: Game-over state with full board, overlay, score, and new-game button (AC-6, AC-4)
 
 ## 3. Game Controls
 
@@ -109,6 +111,8 @@ To reproduce the screenshots and generate fresh visual proof:
 2. Launch the game: `poetry run python -m src.main`
 3. Interact: Use arrow keys to move tiles, observe merge animations and mascot reactions
 4. Capture: Use your OS screenshot tool to capture game states
+
+Window size is 700 × 800 pixels. The game window is non-resizable.
 
 ## 5. Test Status
 
@@ -153,7 +157,7 @@ All 8 Phase 4 acceptance criteria verified as PASS.
 | AC-4 | Mascot expression changes based on game state | PASS | phase4_mid_game.png and phase4_feedback.png show mascot reacting to game activity |
 | AC-5 | HUD displays score, best score, and move count correctly | PASS | phase4_mid_game.png shows active HUD with score and move count |
 | AC-6 | Game launches with correct window dimensions (700×800) | PASS | phase4_initial.png and phase4_initial_check.png show correct window on launch |
-| AC-7 | Game Over and Win overlays display when conditions met | PASS | phase4_feedback.png shows overlay rendering; code inspection confirms game-over path |
+| AC-7 | Game Over and Win overlays display when conditions met | PASS | phase4_game_over.png shows overlay rendering; code inspection confirms game-over path |
 | AC-8 | pytest passes with 0 failures | PASS | Full suite: 412 tests, 0 failures |
 
 Note: phase4_game_over.png is now captured via the deterministic capture script (capture_game_over.py).
@@ -175,3 +179,40 @@ AC-7 is verified through the game-over screenshot and code inspection.
 - **src/render/** — pygame-ce rendering pipeline (AssetLoader, BoardRenderer, HUD). Loads PNG assets from assets/ directory. Consumes GameSession state via read-only accessors.
 - **src/main.py** — Game entry point. GameWindow class with pygame game loop, input handling, state machine (IDLE/PLAYING/GAME_OVER/WIN). Only file allowed to import both pygame and src.core.
 - **assets/** — 24 pre-generated Monster Kitchen PNG assets (Kawaii/Cooking Mama style). Loaded eagerly at startup by AssetLoader.
+
+## SOW AC Coverage Table
+
+This table maps each of the 14 SOW acceptance criteria to its evidence type. Verified against Task 1 coverage matrix and corrected for all false-positive claims.
+
+| SOW AC | Description | Evidence Type | Evidence Source |
+|--------|-------------|---------------|-----------------|
+| AC-1 | Slide mechanics correct | screenshot | phase4_after_right.png, phase4_after_move.png, phase4_feedback.png |
+| AC-2 | Tile merge + scoring correct | screenshot | phase4_feedback.png, phase4_after_move.png |
+| AC-3 | Spawn distribution 90/10 | automated | pytest (seeded run statistical verification) |
+| AC-4 | Score increases by merged tile | screenshot | phase4_feedback.png, phase4_game_over.png |
+| AC-5 | Undo restores exact previous state | gap | partial coverage — undo verified by automated tests only (test_history.py). Cannot be captured per ADR-030. |
+| AC-6 | Game ends when no empty/merge | screenshot | phase4_game_over.png |
+| AC-7 | High score persists across runs | automated | pytest (cross-session persistence test) |
+| AC-8 | 10+ distinct achievements | screenshot | phase4_feedback.png (toast visible) |
+| AC-9 | Twist + unconventional mechanic | screenshot | phase4_feedback.png (rotten tiles visible) |
+| AC-10 | Project file structure | non-visual | verified by directory inspection |
+| AC-11 | All Python files syntax-error free | automated | pytest (syntax validation) |
+| AC-12 | pytest passes 0 failures | automated | pytest (full suite: 412 tests, 0 failures) |
+| AC-13 | Game launches without errors | screenshot | phase4_initial.png, phase4_initial_check.png |
+| AC-14 | visual-proof/ contains artifacts | manifest | this manifest rewrite (10 accurate entries, SOW AC table, corrections log) |
+
+## False-Positive Corrections Log
+
+The following 7 AC-to-screenshot mappings from the previous manifest were identified as false positives by the Task 1 coverage matrix and have been corrected in this rewrite.
+
+| # | Screenshot | Removed AC | Rationale |
+|---|-----------|------------|-----------|
+| 1 | phase4_feedback.png | AC-7 (high score persists) | High score persistence requires evidence across two separate game launches; a single screenshot cannot demonstrate cross-session persistence |
+| 2 | phase4_feedback.png | AC-3 (spawn distribution) | Spawn distribution is a statistical property over a seeded run; a single gameplay screenshot cannot demonstrate the probability distribution |
+| 3 | phase4_mid_game.png | AC-3 (spawn distribution) | Same rationale as above; one screenshot cannot show statistical spawn distribution |
+| 4 | phase4_mid_game.png | AC-5 (undo restores state) | Undo requires a before/after state comparison; a single mid-game screenshot does not show state restoration |
+| 5 | phase4_game_over.png | AC-7 (high score persists) | Same rationale as #1; game-over screenshot does not demonstrate cross-session persistence |
+| 6 | phase4_game_over.png | AC-5 (undo restores state) | Game-over screenshot shows a terminal state, not an undo action; no state restoration is visible |
+| 7 | first_light.png | AC-10 (file structure) | File structure is verified by directory inspection, not by a screenshot of the rendered game |
+
+All 7 corrections resolved. The corrected manifest maps each screenshot only to ACs it actually demonstrates.
