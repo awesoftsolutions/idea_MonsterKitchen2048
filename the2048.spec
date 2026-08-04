@@ -1,19 +1,43 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
-    ['C:\\Users\\Administrator\\AppData\\Local\\Temp\\favur-the2048-20260731-011606-810\\src\\main.py'],
-    pathex=[],
+    ["src/main.py"],
+    pathex=["."],
     binaries=[],
-    datas=[('C:\\Users\\Administrator\\AppData\\Local\\Temp\\favur-the2048-20260731-011606-810\\assets', 'assets')],
-    hiddenimports=[],
+    datas=[("assets", "assets")],
+    hiddenimports=[
+        "src.core.board",
+        "src.core.game_session",
+        "src.core.achievements",
+        "src.core.history",
+        "src.core.rules",
+        "src.core.score",
+        "src.core.twist",
+        "src.main",
+        "src.render.animation",
+        "src.render.animation_manager",
+        "src.render.asset_loader",
+        "src.render.layout",
+        "src.render.merge_celebration",
+        "src.render.renderer",
+        "src.render.toast_manager",
+        "pygame",
+    ],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
+    runtime_hooks=["scripts/runtime_hook.py"],
+    excludes=[
+        "pytest",
+        "unittest",
+        "xml",
+        "pydoc",
+        "doctest",
+        "tkinter",
+    ],
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -22,14 +46,14 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='the2048',
+    name="the2048",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
