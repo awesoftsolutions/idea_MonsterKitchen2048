@@ -9,8 +9,6 @@ regressed spec (console=True, empty hiddenimports, empty runtime_hooks,
 absolute paths). Tests 6 and 7 pass because the regressed spec still has
 valid syntax and an assets datas entry.
 """
-# CHANGELOG:
-# - Sprint 3: TDD red-phase tests for the2048.spec configuration validation via AST parsing
 
 from __future__ import annotations
 
@@ -280,5 +278,5 @@ def test_spec_no_absolute_paths() -> None:
         match = pattern.search(spec_content)
         assert match is None, (
             f"Found absolute path matching {pattern.pattern!r} in spec file. "
-            f"Use relative paths only for portability."
+        f"Use relative paths only for portability."
         )
