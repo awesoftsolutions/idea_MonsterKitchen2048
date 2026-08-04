@@ -6,21 +6,34 @@ A fun **2048 puzzle game** with a cute food-and-monster twist! Slide tiles on a 
 
 Built with [pygame-ce](https://pyga.me/) and Python. Designed to be fun for kids and parents alike.
 
-## Why Monster Kitchen?
+## Monster Kitchen Twist
 
-The classic 2048 is a number-sliding puzzle. Monster Kitchen keeps the core merge mechanic but wraps it in a colorful kitchen world where tiles are cute food items made by little monster chefs. Instead of chasing abstract numbers, you evolve a tiny blueberry into a magnificent chef's masterpiece cake.
+Monster Kitchen replaces the abstract number tiles of classic 2048 with a **colorful kitchen/food world**. Every tile is a cute, cartoon food item crafted by little monster chefs. Players evolve a tiny **blueberry** (value 2) up through **cupcake → pie → cake → mega-cake**, reaching the legendary **2048 chef's masterpiece**. The board is a cheerful kitchen countertop and the merge animations are themed around "cooking up" bigger recipes.
 
-The twist introduces **Rotten Food contamination** — every few moves a gross (but funny!) rotten tile appears with a 3-turn countdown. If you do not merge it away in time, it spreads and contaminates a neighbour tile. This forces defensive play: you cannot just chase high scores, you must actively manage rotten tiles or the board fills with unusable garbage.
+The core 2048 mechanics (4×4 grid, directional sliding, merging identical tiles) are **completely preserved** — no board-size changes, no new input gestures, no unfamiliar rules for players already comfortable with sliding tile puzzles.
 
-**Why food instead of numbers?**
-- Numbers are abstract; food items are immediate and visual — a 8-year-old knows what a blueberry is
-- The merge chain (blueberry → cupcake → pie → cake → mega-cake) tells a story
-- Rotten Food adds a "keep your kitchen clean" tension that pure 2048 lacks
+### Rotten Food Contamination
 
-**What was rejected:**
-- A sci-fi theme (too abstract for the target audience)
-- A purely cosmetic re-skin with no mechanic change (would not justify a "twist")
-- Making the grid larger than 4×4 (the SOW locks the grid to 4×4)
+Every 3–5 moves, a **Rotten Food tile** spawns at a random empty cell. It carries a visible **3-turn countdown timer** (rendered as a ring that ticks down each move). When the countdown reaches zero, the tile **contaminates** one orthogonally adjacent tile, converting it into a new Rotten Food tile with its own 3-turn timer. If no empty neighbour exists, contamination is suppressed for that turn (but the tile stays on the board).
+
+The mechanic forces **defensive play**: players cannot simply chase high-score merges; they must either merge Rotten tiles away (consuming them from the board) or manage the board to prevent uncontrollable spread. This is the twist's key tension — the same "keep your kitchen clean" metaphor that fits the food theme.
+
+### Why food instead of numbers?
+
+- **Immediate visual recognition** — an 8-year-old instantly identifies a blueberry; "512" is abstract
+- **Story through merging** — the chain blueberry → cupcake → pie → cake → mega-cake is a coherent narrative progression, unlike 2→4→8→16
+- **Natural contamination metaphor** — "rotten food spoils the kitchen" is immediately understandable to children; a "corrupted number" requires explanation
+
+### Rejected Alternatives
+
+The team evaluated four alternative creative twists before selecting Monster Kitchen (decision record: ADR-001):
+
+| Alternative | Description | Reason Rejected |
+|-------------|-------------|-----------------|
+| **Gravity Collapse** | Tiles fall and settle under gravity after each move | Grid physics conflict: existing 4×4 directional-slide logic incompatible with gravity-based settling without a full renderer rewrite |
+| **Elemental Clash** | Tiles represent elements (fire/water/earth/air) that combine via type-match rules | Type-match merge system unfamiliar to classic 2048 players, bad fit as a first-game introduction for 8-year-old learning the base game |
+| **Shadow Realm** | Board develops a "dark side" with mirrored mechanics | Dark gothic aesthetic literally contradicts the target audience (8-year-olds, bright/cute mandate) |
+| **Mirror Duel** | Two players share one board, PvP scoring race | Competitive PvP scope too large for initial release; shifts focus from single-player puzzle satisfaction |
 
 ## Features
 
@@ -106,6 +119,7 @@ poetry run python scripts/build.py --clean
 | pytest | ^9.1.1 | Test runner |
 | pytest-cov | ^7.1.0 | Test coverage reporting |
 | PyInstaller | ^6.21.0 | Standalone binary packaging |
+| GitHub Actions CI | v1 | Continuous integration testing across Python 3.11–3.13 |
 
 ## Project Structure
 
@@ -142,7 +156,8 @@ poetry run python scripts/build.py --clean
 ├── visual-proof/               # Visual verification artifacts
 ├── the2048.spec                # PyInstaller configuration
 ├── pyproject.toml              # Project config & dependencies
-└── LICENSE
+├── poetry.lock                   # Poetry lockfile (generated)
+└── .git*                         # Git metadata (excluded from repo tree)
 ```
 
 ## License
