@@ -11,6 +11,10 @@ Solution: This hook changes the process working directory to sys._MEIPASS
 
 Reference: Phase 6 Architecture — E-PKG02, ADR-033
 """
+
+# CHANGELOG:
+# - Sprint 2: Added to handle CWD to sys._MEIPASS for onefile asset resolution at runtime.
+
 from __future__ import annotations
 
 import os

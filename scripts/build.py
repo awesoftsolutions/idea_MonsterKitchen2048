@@ -11,6 +11,10 @@ Produces:
 
 Reference: Phase 6 Architecture - ADR-035, E-PKG02
 """
+
+# CHANGELOG:
+# - Sprint 2: Added as the PyInstaller build wrapper for Monster Kitchen 2048 standalone packaging.
+
 from __future__ import annotations
 
 import shutil
