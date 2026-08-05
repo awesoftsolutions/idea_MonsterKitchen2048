@@ -65,7 +65,7 @@ class AssetLoader:
         self._cache: dict[str, pygame.Surface] = {}
         self._tile_size: int = 0
 
-    def load_all(self, cell_size: int) -> None:
+    def load_all(self, cell_size: int, window_width: int = 700, window_height: int = 800) -> None:
         """Load all 24 PNGs into ``self._cache``.
 
         Reads filenames from ``TILE_SPRITES``, ``UI_SPRITE_NAMES``, and
@@ -74,6 +74,8 @@ class AssetLoader:
 
         Args:
             cell_size: Pixel size for scaling tile sprites.
+            window_width: Window width in pixels for scaling full-window UI sprites (default 700).
+            window_height: Window height in pixels for scaling full-window UI sprites (default 800).
 
         Raises:
             FileNotFoundError: If *assets_dir* does not exist (E-AL01).
@@ -90,6 +92,7 @@ class AssetLoader:
         from src.render.layout import MASCOT_STATES
         from src.render.layout import TILE_SPRITES
         from src.render.layout import UI_SPRITE_NAMES
+        from src.render.layout import TITLE_AREA_HEIGHT
 
         # Use a temporary dict so that self._cache stays empty on failure.
         temp_cache: dict[str, pygame.Surface] = {}
@@ -102,20 +105,41 @@ class AssetLoader:
                 surface, (cell_size, cell_size)
             )
 
-        # Step 4 — Load special tile sprites (native resolution)
+        # Step 4 — Load special tile sprites (scaled to cell_size)
         for key, filename in SPECIAL_SPRITES.items():
             full_path = self.assets_dir / ALL_TILE_SUBDIR / filename
-            temp_cache[f"special_{key}"] = pygame.image.load(full_path)
+            surface = pygame.image.load(full_path)
+            temp_cache[f"special_{key}"] = pygame.transform.smoothscale(
+                surface, (cell_size, cell_size)
+            )
 
-        # Step 5 — Load UI sprites (native resolution)
+        # Step 5 — Load UI sprites scaled to their intended display dimensions.
+        # All source PNGs are 1024×1024; each is scaled to fit its role in the layout.
+        _ui_sizes: dict[str, tuple[int, int]] = {
+            "background_wallpaper": (window_width, window_height),
+            "board_background": (window_width, window_height - TITLE_AREA_HEIGHT),
+            "cell_empty": (cell_size, cell_size),
+            "score_card": (cell_size, TITLE_AREA_HEIGHT),
+            "title_logo": (cell_size * 2, TITLE_AREA_HEIGHT),
+            "new_game_button": (cell_size, cell_size // 2),
+            "game_over_overlay": (window_width, window_height),
+            "win_overlay": (window_width, window_height),
+        }
         for name, filename in UI_SPRITE_NAMES.items():
             full_path = self.assets_dir / ALL_UI_SUBDIR / filename
-            temp_cache[f"ui_{name}"] = pygame.image.load(full_path)
+            surface = pygame.image.load(full_path)
+            target_size = _ui_sizes.get(name)
+            if target_size is not None:
+                temp_cache[f"ui_{name}"] = pygame.transform.smoothscale(surface, target_size)
+            else:
+                temp_cache[f"ui_{name}"] = surface
 
-        # Step 6 — Load mascot sprites (native resolution)
+        # Step 6 — Load mascot sprites scaled to HUD title area height
+        mascot_size = (TITLE_AREA_HEIGHT, TITLE_AREA_HEIGHT)
         for state, filename in MASCOT_STATES.items():
             full_path = self.assets_dir / ALL_MASCOT_SUBDIR / filename
-            temp_cache[f"mascot_{state}"] = pygame.image.load(full_path)
+            surface = pygame.image.load(full_path)
+            temp_cache[f"mascot_{state}"] = pygame.transform.smoothscale(surface, mascot_size)
 
         # Step 7 — Only commit on full success
         self._cache = temp_cache

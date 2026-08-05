@@ -6,6 +6,12 @@ A fun **2048 puzzle game** with a cute food-and-monster twist! Slide tiles on a 
 
 Built with [pygame-ce](https://pyga.me/) and Python. Designed to be fun for kids and parents alike.
 
+## Screenshot
+
+![Favur Monster Kitchen 2048](SCREENSHOT.png)
+
+[View run details](https://evals.favur.dev/runs/the2048__xiaomi-multi-model-2.5-2.5-pro-8.4.2026)
+
 ## Monster Kitchen Twist
 
 Monster Kitchen replaces the abstract number tiles of classic 2048 with a **colorful kitchen/food world**. Every tile is a cute, cartoon food item crafted by little monster chefs. Players evolve a tiny **blueberry** (value 2) up through **cupcake → pie → cake → mega-cake**, reaching the legendary **2048 chef's masterpiece**. The board is a cheerful kitchen countertop and the merge animations are themed around "cooking up" bigger recipes.
